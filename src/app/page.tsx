@@ -47,6 +47,9 @@ const PREVIEW_MEMORIES = parseMemories(seedMemories).map(
 //
 // Phones get one column: the text, the button, then the preview. From the lg
 // breakpoint (1024px) up, it's two: the text on the left, the preview on the right.
+// From lg up, the vertical gaps are also one step smaller (the lg:mt-*, lg:pt-6 and
+// lg:gap-3 classes), so "start talking" fits in a 1280x800 window without scrolling.
+// Phones never see those classes, so their layout is unchanged.
 export default function WelcomePage() {
   return (
     <main className="relative flex flex-1 flex-col overflow-hidden">
@@ -56,13 +59,13 @@ export default function WelcomePage() {
         className="pointer-events-none absolute inset-x-0 top-0 h-[30rem] bg-[radial-gradient(75%_70%_at_50%_0%,var(--warm),transparent)]"
       />
 
-      <div className="relative mx-auto flex w-full max-w-lg flex-1 flex-col px-6 pt-6 pb-10 sm:pt-8 lg:max-w-5xl">
+      <div className="relative mx-auto flex w-full max-w-lg flex-1 flex-col px-6 pt-6 pb-10 sm:pt-8 lg:max-w-5xl lg:pt-6">
         {/* The app's name, small. Not a heading: the headline below is the page's h1. */}
         <p className="text-sm font-medium tracking-tight motion-safe:animate-rise-in">
           future maya <span className="text-muted">· memory receipts</span>
         </p>
 
-        <div className="mt-10 sm:mt-16 lg:mt-14 lg:grid lg:grid-cols-2 lg:items-center lg:gap-16">
+        <div className="mt-10 sm:mt-16 lg:mt-10 lg:grid lg:grid-cols-2 lg:items-center lg:gap-16">
           <div className="flex flex-col">
             <h1 className="text-[2rem] leading-[1.2] font-medium tracking-tight text-balance motion-safe:animate-rise-in sm:text-[2.5rem]">
               some days you need to hear from the you who made it through.
@@ -70,7 +73,7 @@ export default function WelcomePage() {
 
             <section
               aria-labelledby="meet-maya"
-              className="mt-12 motion-safe:animate-rise-in motion-safe:[animation-delay:120ms]"
+              className="mt-12 motion-safe:animate-rise-in motion-safe:[animation-delay:120ms] lg:mt-10"
             >
               <h2 id="meet-maya" className="text-sm font-medium text-warm-ink">
                 meet maya
@@ -81,18 +84,18 @@ export default function WelcomePage() {
               </p>
             </section>
 
-            <p className="mt-8 rounded-2xl bg-accent-soft px-5 py-4 leading-relaxed text-pretty motion-safe:animate-rise-in motion-safe:[animation-delay:240ms]">
+            <p className="mt-8 rounded-2xl bg-accent-soft px-5 py-4 leading-relaxed text-pretty motion-safe:animate-rise-in motion-safe:[animation-delay:240ms] lg:mt-6">
               every reply shows which memories it used. tap a 🧠 to see why, fix it, or forget it.
             </p>
 
             <section
               aria-labelledby="how-it-works"
-              className="mt-10 motion-safe:animate-rise-in motion-safe:[animation-delay:360ms]"
+              className="mt-10 motion-safe:animate-rise-in motion-safe:[animation-delay:360ms] lg:mt-8"
             >
               <h2 id="how-it-works" className="text-sm font-medium text-warm-ink">
                 how it works
               </h2>
-              <ol className="mt-4 flex flex-col gap-3.5">
+              <ol className="mt-4 flex flex-col gap-3.5 lg:mt-3 lg:gap-3">
                 {STEPS.map((step, index) => (
                   <li key={step} className="flex items-center gap-3.5">
                     <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-warm text-sm font-medium text-warm-ink">
@@ -107,7 +110,7 @@ export default function WelcomePage() {
             {/* A link, not a button: it goes to another page, and works without JavaScript. */}
             <Link
               href="/chat"
-              className="mt-12 flex w-full items-center justify-center rounded-full bg-accent px-7 py-3.5 text-base font-medium text-accent-ink shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent motion-safe:animate-rise-in motion-safe:[animation-delay:480ms] sm:w-auto sm:self-start"
+              className="mt-12 flex w-full items-center justify-center rounded-full bg-accent px-7 py-3.5 text-base font-medium text-accent-ink shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent motion-safe:animate-rise-in motion-safe:[animation-delay:480ms] sm:w-auto sm:self-start lg:mt-10"
             >
               start talking
             </Link>

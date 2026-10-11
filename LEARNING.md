@@ -308,3 +308,47 @@ In Python terms: `classes = SOLID if not button.disabled else MUTED`, except the
 
 ### Quiz
 The second typing dot has `motion-safe:animate-typing-dot motion-safe:[animation-delay:160ms]`. Suppose someone "simplifies" its delay to a plain `[animation-delay:160ms]`. With normal motion settings, what would you see the three dots do, and why? Would anything change for someone with "reduce motion" turned on?
+
+## Step 8.1: Fixes: prompt wording, introducing people, welcome spacing
+
+### What I built
+Future maya's prompt now matches the welcome page: maya is "six months into her first job", and future maya is "maya, two years from now". The prompt also has a stronger rule: the first time a reply names someone from the memories, it says who they are, using only what the memories say. On large screens the welcome page's vertical gaps are one step smaller, so "start talking" fits in a 1280x800 window. Phones look exactly the same as before.
+
+### Files changed
+- `src/lib/prompt.ts`: the opening line, a rewritten "always introduce people" rule under "How you write", and a one-line reminder of it in the output format's `"reply"` line. The 2-sentence limit, safety exception, JSON format and memory rules are unchanged.
+- `src/app/page.tsx`: `lg:` spacing classes (`lg:pt-6`, `lg:mt-10`, `lg:mt-6`, `lg:mt-8`, `lg:mt-3`, `lg:gap-3`) and a comment about them.
+- Not changed: `src/data/memories.json` (see below), `globals.css`, and everything else.
+
+### What the memories say about each person
+Only three people are named, and no memory gives anyone a job title:
+
+| Person | What the memories actually say | Implied, never stated |
+| --- | --- | --- |
+| Ren | m10: mentioned bootstrapping confidence intervals. m20: maya's six-month check-in is with Ren, who'll ask where she wants to grow. | her manager |
+| Carlos | m07: left 31 comments on her backfill PR. m09: what hurt was not knowing which comments mattered. | a senior engineer / reviewer |
+| Jonah | m15: paired with her on the suggested-reply button and did the UI. m18: wants to put her panel in the real UI. | a frontend engineer / teammate |
+
+So the prompt doesn't say "ren, your manager". It tells Claude to describe people only the way the memories do, and never to add a title. A real reply put it as "ren, who you said mentioned bootstrapping confidence intervals": accurate, but a weak introduction. If you want "ren, your manager", a memory has to say so. That's a one-word change to m20's text, and it's left for you to decide.
+
+There's also no list of people in the prompt. If you forgot m07 and m09, a line like "Carlos: reviewer" would still tell Claude about Carlos. The list would be a second copy of the memories, and forgetting a memory can't reach a second copy.
+
+### Key concepts
+- **Mobile-first breakpoints.** A class with no prefix applies at every width. `lg:mt-10` applies only from 1024px wide, because Tailwind writes it inside `@media (min-width: 64rem) { ... }`, *after* the plain `.mt-12` rule, so it wins there and nowhere else. The order you type classes in doesn't matter. Python analogy: `style = {**base}` and then `if width >= 1024: style.update(lg)`. Adding to `lg` can't change what a 390px phone gets.
+- **Proving nothing changed: a snapshot test.** Before editing, a script measured all 42 elements on the welcome page and took screenshots at 320, 390 and 768 wide, light and dark. After editing it did the same and compared. Every box matched, and the screenshots were byte-for-byte identical. Python analogy: snapshot testing with `syrupy`. You record the output once, and any later diff fails the test.
+- **A prompt rule needs its edge cases spelled out.** The first version of the rule still produced "...before the check-in with Ren, and...". Claude treated the words around the name as the introduction. One added sentence ("Context elsewhere in the sentence, like 'your meeting with <name>', doesn't count") fixed that case on the next try. Python analogy: after a bug, you add a test for that exact input. The prompt now names the case that failed. It's still one try, not proof.
+- **One source of truth.** Facts about people live only in the memories, so forgetting a memory really removes them. Python analogy: the Step 7 history leak again, a denormalized copy that a `DELETE` on the main table never touches.
+
+### One line worth understanding
+```tsx
+className="mt-12 motion-safe:animate-rise-in motion-safe:[animation-delay:120ms] lg:mt-10"
+```
+This is the "meet maya" section (`src/app/page.tsx`):
+- `mt-12`: a 48px top margin at every width, phones included.
+- `motion-safe:animate-rise-in`: the gentle rise-in, only when the user hasn't asked for reduced motion.
+- `motion-safe:[animation-delay:120ms]`: start it 120ms late. It needs `motion-safe:` too (see Step 8).
+- `lg:mt-10`: from 1024px wide, 40px instead of 48px. Tailwind compiles it to `@media (min-width: 64rem) { .lg\:mt-10 { margin-top: calc(var(--spacing) * 10); } }`, where `--spacing` is 0.25rem (4px).
+
+In Python: `margin_top = 40 if viewport_width >= 1024 else 48`.
+
+### Quiz
+Suppose the "meet maya" section had been changed from `mt-12` to plain `mt-10` instead of adding `lg:mt-10`. What would be different on a 390px phone, and which of the before/after checks described above would have caught it?
