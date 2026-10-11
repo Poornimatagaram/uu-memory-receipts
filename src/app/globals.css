@@ -49,7 +49,7 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* Gentle entrances for the memory panel and the welcome screen. Each
+/* Gentle motion for the memory panel, the welcome screen and the typing dots. Each
    --animate-NAME becomes an animate-NAME class. We only use them behind
    motion-safe:, so they're off for anyone who asks for reduced motion. */
 @theme {
@@ -58,6 +58,9 @@
   --animate-panel-in: panel-in 240ms ease-out;
   /* "both" keeps a delayed element hidden until its turn (see src/app/page.tsx). */
   --animate-rise-in: rise-in 600ms ease-out both;
+  /* The typing dots (src/components/ChatBubble.tsx). "both" again: a dot waiting
+     for its delay already shows the first frame (faded), not a full-strength flash. */
+  --animate-typing-dot: typing-dot 1.2s ease-in-out infinite both;
 
   @keyframes fade-in {
     from {
@@ -78,6 +81,19 @@
     from {
       opacity: 0;
       transform: translateY(8px);
+    }
+  }
+  /* Faded and resting, then a small lift at full strength, then back. */
+  @keyframes typing-dot {
+    0%,
+    60%,
+    100% {
+      opacity: 0.35;
+      transform: translateY(0);
+    }
+    30% {
+      opacity: 1;
+      transform: translateY(-2px);
     }
   }
 }

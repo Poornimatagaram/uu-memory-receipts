@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { flushSync } from "react-dom";
-import ChatBubble from "@/components/ChatBubble";
+import ChatBubble, { TypingBubble } from "@/components/ChatBubble";
 import MemoryPanel from "@/components/MemoryPanel";
 import seedMemories from "@/data/memories.json";
 import { askFutureMaya } from "@/lib/chat-client";
@@ -262,10 +263,29 @@ export default function ChatPage() {
         inert={openReceipt !== null}
         className="mx-auto flex h-dvh w-full max-w-md flex-col sm:border-x sm:border-line"
       >
-        <header className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
-          <div>
-            <h1 className="text-lg leading-tight font-medium">future maya</h1>
-            <p className="text-sm text-muted">maya, two years from now</p>
+        <header className="flex items-center justify-between gap-2 border-b border-line px-4 py-4 sm:px-5">
+          <div className="flex min-w-0 items-center gap-2">
+            {/* Back to the welcome page. aria-label gives the arrow a name screen
+                readers can say. With cacheComponents, Next.js hides this page
+                instead of throwing it away, so the chat is still here on return. */}
+            <Link
+              href="/"
+              aria-label="back to the welcome page"
+              className="-ml-2 flex size-8 shrink-0 items-center justify-center rounded-full text-lg text-muted transition-colors hover:bg-surface hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              ←
+            </Link>
+            {/* Decoration: the heading next to it already says who this is. */}
+            <span
+              aria-hidden="true"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent-soft font-medium text-accent"
+            >
+              m
+            </span>
+            <div className="min-w-0">
+              <h1 className="text-lg leading-tight font-medium">future maya</h1>
+              <p className="text-sm text-muted">maya, two years from now</p>
+            </div>
           </div>
           <button
             ref={startOverButtonRef}
@@ -367,10 +387,17 @@ export default function ChatPage() {
             </ol>
           )}
 
-          {/* role="status" lets screen readers announce the typing line. */}
-          <p role="status" className="px-1 pt-4 pb-4 text-sm text-muted">
-            {loading && <span className="motion-safe:animate-pulse">future maya is typing...</span>}
-          </p>
+          {/* role="status": screen readers announce what appears inside it, here
+              "future maya is typing". The dots are only for the eyes (aria-hidden). */}
+          <div role="status" className="py-4">
+            {loading && (
+              // pt-1 + the py-4 above: 20px, the same gap as between messages.
+              <div className="pt-1">
+                <span className="sr-only">future maya is typing</span>
+                <TypingBubble />
+              </div>
+            )}
+          </div>
           <div ref={bottomRef} />
         </div>
 
@@ -421,10 +448,14 @@ export default function ChatPage() {
               enterKeyHint="send"
               className="min-w-0 flex-1 rounded-full border border-line bg-surface px-4 py-2.5 text-base placeholder:text-muted focus:outline-none focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/30"
             />
+            {/* Solid green when there's something to send. While it's disabled (an
+                empty box, or a reply still loading), the disabled: classes swap in a
+                quiet look that matches the message box next to it: a surface fill, a
+                hairline border and muted text, still readable in light and dark. */}
             <button
               type="submit"
               disabled={loading || input.trim() === ""}
-              className="rounded-full bg-accent px-4 py-2.5 text-sm font-medium text-accent-ink transition-opacity focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-40"
+              className="rounded-full border border-accent bg-accent px-4 py-2.5 text-sm font-medium text-accent-ink transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:border-line disabled:bg-surface disabled:text-muted"
             >
               send
             </button>

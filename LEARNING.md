@@ -168,3 +168,143 @@ In Python: `set_memories(lambda prev: [{**m, "status": "forgotten"} if m["id"] =
 
 ### Quiz
 "ask again" sends only the history from before the question was first asked. Suppose it sent the whole chat instead, including the old reply that drew on the memory you just forgot. Could a chip for the forgotten memory appear under the new reply? And what could still go wrong in the new reply's text?
+
+## Step 7: Welcome screen, chat polish, and the history leak fix
+
+### What I built
+The app now opens on a calm welcome screen at `/` with one "start talking" button, and the chat moved to `/chat`. The chat got easier to read: chips now say "🧠 research goal · jul 13", replies are at most two short sentences, and a "start over" button resets the demo after asking first. Most importantly, the request sent to Claude no longer carries forgotten or changed memories back in through old reply text.
+
+### Files changed
+- `src/app/page.tsx`: now the welcome screen. It's a Server Component (no `"use client"`): rendered to HTML on the server, it adds no JavaScript of its own, and it works even with JavaScript turned off.
+- `src/app/chat/page.tsx`: the chat, moved here from `src/app/page.tsx`. It adds the "start over" button and its confirm step, a request counter that drops stale replies, a `usedText` snapshot on each new reply, the empty-chat hint, and the new notice text.
+- `src/app/chat/layout.tsx` (new): a Server Component whose only job is the chat's tab title, because a `"use client"` page can't export `metadata`.
+- `src/app/layout.tsx`: the title is now a template, `"%s · memory receipts"`.
+- `src/app/globals.css`: two warm tokens (`--warm`, `--warm-ink`, light and dark) and a gentle `rise-in` animation.
+- `src/lib/history.ts` (new): the redaction rule. `snapshotUsedText` records what each cited memory said when a reply arrived, `usedChangedMemory` checks whether any of them changed since, and `historyForRequest` swaps those replies for a placeholder.
+- `src/lib/chat-client.ts`: `buildRequestBody` is now the one place a request body is built. It drops forgotten memories, copies only the memory fields the server needs (so no `originalText`), and redacts the history.
+- `src/lib/dates.ts` (new): `shortDate` ("jul 13") for chips and `longDate` ("jul 13, 2026") for the panel, both made by splitting the string.
+- `src/lib/types.ts`: `Memory` gets `label`, and `ChatMessage` gets the UI-only `usedText`.
+- `src/lib/memories.ts`: `isMemory` also checks `label`.
+- `src/data/memories.json`: a 2–4 word `label` on every memory, taken from its text.
+- `src/lib/prompt.ts`: replies are at most 2 short sentences with one question or one next step, and people get a short "who they are" the first time they come up.
+- `src/components/ReceiptChip.tsx`: shows label and short date. `MemoryPanel.tsx`: its heading is now the memory's label, matching the chip you tapped, and its date reads "jul 13, 2026". `ChatBubble.tsx`: a comment.
+- Not changed: `route.ts` (it still drops forgotten memories itself, as a backstop) and your `receipts.ts`.
+
+### Routing: folders become URLs
+In the App Router, the folder a file sits in is its URL. A folder becomes a page only when it has a `page.tsx` (or an API endpoint when it has a `route.ts`):
+
+| File | URL |
+| --- | --- |
+| `src/app/page.tsx` | `/` |
+| `src/app/chat/page.tsx` | `/chat` |
+| `src/app/api/chat/route.ts` | `POST /api/chat` |
+
+FastAPI analogy: each folder is like an `APIRouter(prefix="/chat")`, and `page.tsx` is the `@router.get("")` inside it. The difference is that the path comes from where the file lives, not from a string you type in a decorator. So "moving the chat to `/chat`" was literally `mv src/app/page.tsx src/app/chat/page.tsx`.
+
+A `layout.tsx` wraps every page in its folder and below, like a Jinja base template that pages `{% extends %}`. The root layout holds `<html>` and `<body>`. The new `chat/layout.tsx` adds no UI. It only exists to export `metadata`, because metadata is resolved on the server before the page renders, and a `"use client"` file can't do that. The Next.js docs also suggest another way: keep `page.tsx` as a server file and move the interactive part into its own client component. The layout let the chat stay in `chat/page.tsx` as it was.
+
+One surprise, found by a test: the root layout's title template `"%s · memory receipts"` turned the chat's `"future maya"` into "future maya · memory receipts", but the welcome page's title came out bare. A template only applies to *child* folders, and `src/app/page.tsx` sits in the same folder as the root layout. So the welcome page writes its full title out.
+
+`<Link href="/chat">` renders a real `<a>`, so it works without JavaScript. With JavaScript, Next.js intercepts the click and swaps in just the new page without reloading the browser tab. This project also turns on `cacheComponents` in `next.config.ts`, which makes Next.js *hide* a page you leave instead of throwing it away (React's `<Activity>`, for up to 3 pages). So if you go back to the welcome screen and tap "start talking" again, the chat and your memory fixes are still there. A full page reload, or "start over", gives you a fresh start. Python analogy: the page is a long-lived object kept in a small cache, not rebuilt on every request.
+
+### Why the leak fix is needed
+Forgetting a memory already removed it from the `memories` list the server sends to Claude. But the chat history is sent too, and an old reply can repeat a memory in its own words:
+
+1. Future maya replies "carlos's 31 comments stung, i remember," citing m07.
+2. You forget m07. The server drops it from the memory list.
+3. You send another message. The history still contains step 1's reply word for word, so Claude reads "carlos's 31 comments" again and can reuse it.
+
+The memory is gone from the list but still alive in the transcript. Python analogy: deleting a row from `users` while a denormalized copy of the same email still sits in an `audit_log` text column you keep feeding to the model. So before sending, any earlier reply that cited a changed memory becomes `"[earlier reply removed: it used a memory maya has since changed]"`. Your own messages are sent as they are, and the screen still shows the original replies.
+
+**Why "changed since", not "currently corrected".** The simple rule, "redact any reply citing a corrected memory," is wrong. Say you correct m01, ask again, and the new reply uses your fixed m01. That reply is exactly what you wanted, but m01's status is still "corrected", so the simple rule would hide it on every turn after. The real question is "did this memory change *after* this reply was written?" So when a reply arrives we store `usedText`, the text each cited memory had at that moment, and compare it with now:
+
+| Situation | Redacted? |
+| --- | --- |
+| cited memory was forgotten (any time) | yes, always |
+| cited memory was corrected after the reply | yes: the text differs from the snapshot |
+| reply was written after the correction and cites it | no: the text matches |
+| that memory is corrected again later | yes: it differs again |
+
+Python analogy: an ETag or a version number. You remember the version you saw, and anything built on an older version is stale. `usedText` is filled from the memories *as sent with that request*, so a correction made while a reply is still loading also counts as "changed since".
+
+What it can't catch: redaction follows receipts. A reply that mentions a memory without citing it isn't redacted, and anything you typed yourself is always kept.
+
+### Key concepts
+- **Server vs. client components.** Python analogy: the welcome page is a FastAPI route returning a Jinja `HTMLResponse` with no `<script>`. The chat is that HTML plus a script that runs in the browser. Use `"use client"` only where you need state, effects, or click handlers.
+- **`useRef` as a box that doesn't redraw.** `latestRequest = useRef(0)` holds a number that survives renders, but changing `.current` doesn't redraw anything. Python analogy: a plain attribute `self.latest_request`, unlike React state, which is a property whose setter repaints the screen.
+- **Ignoring stale responses.** Each `send()` takes a ticket (`requestId`), and "start over" bumps the counter. After the `await`, a reply whose ticket isn't the latest is dropped. Python analogy: after `await client.post(...)` in an asyncio task, check `if request_id != self.latest_request: return` before writing results. Like Python, `finally` still runs after a `return` inside `try`, so it only clears `loading` when the request is still current.
+- **`Record`, `Pick`, and picking fields.** `Record<string, string>` is `dict[str, str]`. `Pick<Memory, "id" | "text">` is a TypedDict with only those keys. `.map(({ id, type, date, text, status }) => ({ id, type, date, text, status }))` is `{k: m[k] for k in ("id", "type", "date", "text", "status")}`, an allowlist like Pydantic's `model_dump(include={...})`, so extra fields like `originalText` can't slip into the request.
+- **Defense in depth.** The browser now leaves forgotten memories out, and the route still filters them too. Python analogy: validating in both the client SDK and the FastAPI endpoint, so a bug in one doesn't leak data.
+- **Dates without `new Date()`.** `new Date("2026-07-13")` means UTC midnight, which is July 12 in US time zones. Python analogy: `datetime.fromisoformat("2026-07-13").replace(tzinfo=timezone.utc).astimezone()` would also land on the 12th in New York. We only need "jul 13", so we split the string, like `y, m, d = s.split("-")`.
+- **`motion-safe:` and reduced motion.** `motion-safe:animate-rise-in` only applies when the operating system's "reduce motion" setting is off, using the CSS media query `prefers-reduced-motion`. Python analogy: a feature flag read from the user's settings. The default is the safe one: no flag, no animation.
+
+### One line worth understanding
+```ts
+return now.text !== message.usedText?.[receipt.id];
+```
+This line in `usedChangedMemory` (src/lib/history.ts) is the "changed since" rule:
+- `now.text`: what the memory says today.
+- `message.usedText`: the snapshot stored on this reply when it arrived, a dict from memory id to text. It's optional, so it may be `undefined`.
+- `?.[receipt.id]`: optional chaining, then a dict lookup. If `usedText` is missing, the whole thing becomes `undefined` instead of crashing. Python: `(message.used_text or {}).get(receipt.id)`.
+- `!==`: strict "not equal", Python's `!=` with no type juggling.
+- `return ... `: `true` means "this memory changed since the reply was written", so the reply gets redacted. If the snapshot has no entry, `undefined !== "some text"` is `true`, so the safe default is to leave the reply out.
+
+In Python: `return now.text != (message.used_text or {}).get(receipt.id)`.
+
+### Quiz
+A reply that cites m09 is still loading when you correct m09. When it arrives, `send()` calls `snapshotUsedText(used, memories)` with the `memories` from when `send()` started, not the latest ones. If it used the latest memories instead, what would go wrong on the next turn?
+
+## Step 8: UI polish
+
+### What I built
+The welcome screen now has a small "future maya · memory receipts" wordmark and a preview of what a reply looks like: one future-maya bubble with two memory chips. On wide screens it sits to the right of the text, and on phones it comes after the "start talking" button. In the chat, future maya has a round "m" avatar, a "←" link goes back to the welcome page without losing the chat, "future maya is typing..." became three gently bobbing dots in a bubble, and the send button stays quiet until there's something to send. Testing also turned up a Step 7 bug: the welcome blocks were meant to rise in one after another, but they all rose at once. That's fixed too.
+
+### Files changed
+- `src/app/page.tsx`: the wordmark (a `<p>`, so the headline is still the only `h1`), a wrapper that becomes two columns from the `lg` breakpoint (1024px) up, and the preview. The preview is a `<figure>` named by its `<figcaption>` that renders the real `ChatBubble`, fed by two seed memories (m18, and m01 shown as corrected). The animation delays are now `motion-safe:[animation-delay:...]` (see the concept below).
+- `src/components/ChatBubble.tsx`: `bubbleLook(role)` holds the bubble's shape and colors, shared by every bubble. `onOpenReceipt` is now optional: leave it out and the chips are pictures, not buttons. There's also a new `TypingBubble`, the three dots in a future-maya bubble.
+- `src/components/ReceiptChip.tsx`: `onOpen` is optional too. Without it, the chip is a `<span>` with the same look and contents, and its status ("corrected by you") goes in screen-reader-only text instead of `aria-label`.
+- `src/app/chat/page.tsx`: the header gets the "←" `<Link href="/">` (named "back to the welcome page") and the decorative avatar (`aria-hidden`). The `role="status"` line now holds a screen-reader-only "future maya is typing" plus the `TypingBubble`. The send button has a solid look and a `disabled:` look.
+- `src/app/globals.css`: the `typing-dot` keyframes and `--animate-typing-dot`.
+- Not changed: `route.ts`, `prompt.ts`, your `receipts.ts`, `history.ts`, `chat-client.ts`.
+
+### Why the preview can't drift from the real chat
+The preview isn't a copy of the chat's markup. It *is* the chat's `ChatBubble`, called without a click handler:
+
+```tsx
+<ChatBubble message={PREVIEW_REPLY} memories={PREVIEW_MEMORIES} />
+```
+
+Inside `ReceiptChip`, the chip's classes (`look`) and contents (`face`: 🧠, label, ✎) are built once. Then one `if` picks the wrapper: no `onOpen` gives a `<span>`, otherwise a `<button>`. If you restyle a chip later, the preview changes with it. A test compares the computed styles of the preview and a real chat bubble and chips, in light and dark, and they match.
+
+The welcome page is a Server Component, and that's why the handler has to be left out. Server Components render to HTML, and HTML can't carry a JavaScript function, so `onClick` can't exist there. `ChatBubble` and `ReceiptChip` have no `"use client"` and no hooks, so the server can render them as long as no function is passed in. In the chat, they run in the browser as part of the `"use client"` page.
+
+### Key concepts
+- **An optional callback picks the behavior.** `onOpen?: (receipt: Receipt) => void` is like `on_open: Callable[[Receipt], None] | None = None` in Python. The function checks `if (!onOpen)` and returns the inert version. It's like a Jinja macro that renders a link only when it's given a URL.
+- **Tailwind variants are just CSS.** A variant is a prefix that wraps the utility in a condition. Here's what Tailwind actually generated for this app (copied from the browser):
+
+  | Class you write | CSS it becomes |
+  | --- | --- |
+  | `motion-safe:animate-typing-dot` | `@media (prefers-reduced-motion: no-preference) { .motion-safe\:animate-typing-dot { animation: var(--animate-typing-dot); } }` |
+  | `motion-reduce:...` (not used here) | the same, but inside `@media (prefers-reduced-motion: reduce)` |
+  | `disabled:bg-surface` | `.disabled\:bg-surface:disabled { background-color: var(--surface); }` |
+
+  `motion-safe:` means "only when the user hasn't asked for less motion", so animation is opt-in and the safe default is stillness. That's why this app never needs `motion-reduce:`, which suits the opposite design: animate by default, then switch it off. `disabled:` uses the CSS `:disabled` pseudo-class, which matches whenever the button has the `disabled` attribute. So the one prop `disabled={loading || input.trim() === ""}` drives both the behavior and the look. There's no separate "isMuted" state to keep in sync. Python analogy: the browser checks `if settings.prefers_reduced_motion == "no-preference":` or `if button.disabled:` for you, live, and the class name is just a key for that rule.
+- **The Step 7 bug: a shorthand resets its longhands.** `[animation-delay:120ms]` and `motion-safe:animate-rise-in` are both a single class, so the rule that comes *later* in the CSS wins. Tailwind emits variant rules after plain ones, and `animation:` is a shorthand: it sets every `animation-*` property, including `animation-delay: 0s`. So every block's delay computed to 0s, and they all rose at once. Python analogy: `style = {**your_delays, **animation_shorthand}`, where the shorthand dict also contains `"delay": 0` and is merged last. The fix, `motion-safe:[animation-delay:120ms]`, puts the delay in the same media block, *after* the shorthand. The test now checks the computed delays: 0.12s for "meet maya", 0.36s for "how it works", and so on.
+- **Live regions: say it once, in words.** A `role="status"` element is watched by screen readers, which read out new content when it appears. The dots are `aria-hidden` (a screen reader would only say "dot dot dot", or nothing), and a `sr-only` span says "future maya is typing" instead. Python analogy: logging, where you emit one clear message to the channel the listener subscribes to.
+- **Navigation keeps the chat (cacheComponents).** `<Link href="/">` swaps pages without reloading the tab, and with `cacheComponents` Next.js *hides* the chat (React's `<Activity>`) instead of throwing it away. Tested: the messages, a corrected memory, and an unsent draft are all still there when you come back, and so is a reply that arrives while you're on the welcome page. Python analogy: the chat is an object kept in a cache, and an `asyncio` task that was already running still finishes and writes into it. A full reload still starts fresh.
+
+### One line worth understanding
+```tsx
+className="rounded-full border border-accent bg-accent px-4 py-2.5 text-sm font-medium text-accent-ink transition-colors ... disabled:border-line disabled:bg-surface disabled:text-muted"
+```
+This is the send button (`src/app/chat/page.tsx`):
+- `border border-accent bg-accent`: a 1px border and a fill, both the `--accent` green. The border is there even in the solid state so the button is the same size in both states and nothing jumps.
+- `text-accent-ink`: white text on the green (dark text in dark mode).
+- `transition-colors`: fades between the two looks instead of snapping.
+- `disabled:border-line disabled:bg-surface disabled:text-muted`: when the button has the `disabled` attribute, swap in the message box's quiet look: hairline border, surface fill, muted text. Measured contrast for the muted label: 5.2:1 in light, 6.1:1 in dark, above the 4.5:1 guideline for small text.
+- `...`: the focus ring classes, unchanged.
+
+In Python terms: `classes = SOLID if not button.disabled else MUTED`, except the browser evaluates that `if` for you, every time `disabled` changes.
+
+### Quiz
+The second typing dot has `motion-safe:animate-typing-dot motion-safe:[animation-delay:160ms]`. Suppose someone "simplifies" its delay to a plain `[animation-delay:160ms]`. With normal motion settings, what would you see the three dots do, and why? Would anything change for someone with "reduce motion" turned on?

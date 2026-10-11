@@ -14,7 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    // A page that sets title: "future maya" gets the tab title "future maya · memory receipts".
+    // A child route that sets title: "future maya" gets "future maya · memory receipts".
+    // It skips src/app/page.tsx, which shares this folder, so that page writes its title out.
     template: "%s · memory receipts",
     default: "memory receipts", // for any page that doesn't set its own title
   },

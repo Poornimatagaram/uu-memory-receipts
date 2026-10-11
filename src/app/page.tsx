@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import ChatBubble from "@/components/ChatBubble";
+import seedMemories from "@/data/memories.json";
+import { parseMemories } from "@/lib/memories";
+import type { ChatMessage, Memory } from "@/lib/types";
 
-// With the template in layout.tsx, the tab reads "meet future maya · memory receipts".
+// The full title, written out. The "%s · memory receipts" template in layout.tsx
+// only applies to pages in *child* folders (like /chat), not to this page, which
+// sits in the same folder as that layout.
 export const metadata: Metadata = {
-  title: "meet future maya",
+  title: "meet future maya · memory receipts",
 };
 
 const STEPS = [
@@ -12,13 +18,35 @@ const STEPS = [
   "fix or forget anything that's wrong",
 ];
 
+// The preview's reply. Its receipts point at two of maya's real memories, so
+// the chips take their label and date from the seed data, as they do in the chat.
+// (The "why"s are never shown: nothing in the preview opens.)
+const PREVIEW_REPLY: ChatMessage = {
+  role: "future",
+  text: "you told me you'd rather ship things people touch. start there?",
+  used: [
+    { id: "m18", why: "the panel she built for the support team" },
+    { id: "m01", why: "her goal, as she corrected it" },
+  ],
+};
+
+// m01 is shown as if maya had corrected it, so the preview has a ✎ chip too.
+const PREVIEW_MEMORIES = parseMemories(seedMemories).map(
+  (m): Memory => (m.id === "m01" ? { ...m, status: "corrected" } : m),
+);
+
 // The welcome screen at "/". There's no "use client" here: nothing on this page
 // needs state or click handlers (the button is a link), so it's a Server
 // Component. It's rendered to HTML on the server and adds no JavaScript of its own.
 //
-// Each block rises in gently, one after another ([animation-delay:...]). The
-// animation sits behind motion-safe:, so with "reduce motion" on, everything
-// is simply there.
+// Each block rises in gently, one after another. The animation sits behind
+// motion-safe:, so with "reduce motion" on, everything is simply there. The
+// delays are behind motion-safe: too, on purpose: animate-rise-in sets the
+// `animation` shorthand, which resets animation-delay to 0, so a plain
+// [animation-delay:...] would lose (see LEARNING.md, Step 8).
+//
+// Phones get one column: the text, the button, then the preview. From the lg
+// breakpoint (1024px) up, it's two: the text on the left, the preview on the right.
 export default function WelcomePage() {
   return (
     <main className="relative flex flex-1 flex-col overflow-hidden">
@@ -28,56 +56,83 @@ export default function WelcomePage() {
         className="pointer-events-none absolute inset-x-0 top-0 h-[30rem] bg-[radial-gradient(75%_70%_at_50%_0%,var(--warm),transparent)]"
       />
 
-      <div className="relative mx-auto flex w-full max-w-lg flex-1 flex-col px-6 pt-20 pb-10 sm:pt-28">
-        <h1 className="text-[2rem] leading-[1.2] font-medium tracking-tight text-balance motion-safe:animate-rise-in sm:text-[2.5rem]">
-          some days you need to hear from the you who made it through.
-        </h1>
-
-        <section
-          aria-labelledby="meet-maya"
-          className="mt-12 motion-safe:animate-rise-in [animation-delay:120ms]"
-        >
-          <h2 id="meet-maya" className="text-sm font-medium text-warm-ink">
-            meet maya
-          </h2>
-          <p className="mt-2 text-lg leading-relaxed">
-            you&apos;ll be texting as maya, a junior ML engineer six months into her first job.
-            future maya is her, two years from now.
-          </p>
-        </section>
-
-        <p className="mt-8 rounded-2xl bg-accent-soft px-5 py-4 leading-relaxed motion-safe:animate-rise-in [animation-delay:240ms]">
-          every reply shows which memories it used. tap a 🧠 to see why, fix it, or forget it.
+      <div className="relative mx-auto flex w-full max-w-lg flex-1 flex-col px-6 pt-6 pb-10 sm:pt-8 lg:max-w-5xl">
+        {/* The app's name, small. Not a heading: the headline below is the page's h1. */}
+        <p className="text-sm font-medium tracking-tight motion-safe:animate-rise-in">
+          future maya <span className="text-muted">· memory receipts</span>
         </p>
 
-        <section
-          aria-labelledby="how-it-works"
-          className="mt-10 motion-safe:animate-rise-in [animation-delay:360ms]"
-        >
-          <h2 id="how-it-works" className="text-sm font-medium text-warm-ink">
-            how it works
-          </h2>
-          <ol className="mt-4 flex flex-col gap-3.5">
-            {STEPS.map((step, index) => (
-              <li key={step} className="flex items-center gap-3.5">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-warm text-sm font-medium text-warm-ink">
-                  {index + 1}
-                </span>
-                <span className="leading-snug">{step}</span>
-              </li>
-            ))}
-          </ol>
-        </section>
+        <div className="mt-10 sm:mt-16 lg:mt-14 lg:grid lg:grid-cols-2 lg:items-center lg:gap-16">
+          <div className="flex flex-col">
+            <h1 className="text-[2rem] leading-[1.2] font-medium tracking-tight text-balance motion-safe:animate-rise-in sm:text-[2.5rem]">
+              some days you need to hear from the you who made it through.
+            </h1>
 
-        {/* A link, not a button: it goes to another page, and works without JavaScript. */}
-        <Link
-          href="/chat"
-          className="mt-12 flex w-full items-center justify-center rounded-full bg-accent px-7 py-3.5 text-base font-medium text-accent-ink shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent motion-safe:animate-rise-in [animation-delay:480ms] sm:w-auto sm:self-start"
-        >
-          start talking
-        </Link>
+            <section
+              aria-labelledby="meet-maya"
+              className="mt-12 motion-safe:animate-rise-in motion-safe:[animation-delay:120ms]"
+            >
+              <h2 id="meet-maya" className="text-sm font-medium text-warm-ink">
+                meet maya
+              </h2>
+              <p className="mt-2 text-lg leading-relaxed text-pretty">
+                you&apos;ll be texting as maya, a junior ML engineer six months into her first job.
+                future maya is her, two years from now.
+              </p>
+            </section>
 
-        <footer className="mt-auto pt-16 text-sm text-muted motion-safe:animate-rise-in [animation-delay:600ms]">
+            <p className="mt-8 rounded-2xl bg-accent-soft px-5 py-4 leading-relaxed text-pretty motion-safe:animate-rise-in motion-safe:[animation-delay:240ms]">
+              every reply shows which memories it used. tap a 🧠 to see why, fix it, or forget it.
+            </p>
+
+            <section
+              aria-labelledby="how-it-works"
+              className="mt-10 motion-safe:animate-rise-in motion-safe:[animation-delay:360ms]"
+            >
+              <h2 id="how-it-works" className="text-sm font-medium text-warm-ink">
+                how it works
+              </h2>
+              <ol className="mt-4 flex flex-col gap-3.5">
+                {STEPS.map((step, index) => (
+                  <li key={step} className="flex items-center gap-3.5">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-warm text-sm font-medium text-warm-ink">
+                      {index + 1}
+                    </span>
+                    <span className="leading-snug">{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+
+            {/* A link, not a button: it goes to another page, and works without JavaScript. */}
+            <Link
+              href="/chat"
+              className="mt-12 flex w-full items-center justify-center rounded-full bg-accent px-7 py-3.5 text-base font-medium text-accent-ink shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent motion-safe:animate-rise-in motion-safe:[animation-delay:480ms] sm:w-auto sm:self-start"
+            >
+              start talking
+            </Link>
+          </div>
+
+          {/* A picture of a reply, not a live chat: it's the real ChatBubble, but
+              with no onOpenReceipt, so its chips are plain text with nothing to
+              press. <figure> tells screen readers it's an illustration, and
+              aria-labelledby names it with the caption (some browsers don't do
+              that on their own). */}
+          <figure
+            aria-labelledby="reply-preview"
+            className="mt-16 motion-safe:animate-rise-in motion-safe:[animation-delay:540ms] lg:mt-0"
+          >
+            <figcaption id="reply-preview" className="text-sm font-medium text-warm-ink">
+              what a reply looks like
+            </figcaption>
+            {/* p-3 on phones leaves a 320px screen room for the longest chip on one line. */}
+            <div className="mt-4 rounded-3xl border border-line bg-background p-3 shadow-sm sm:p-5">
+              <ChatBubble message={PREVIEW_REPLY} memories={PREVIEW_MEMORIES} />
+            </div>
+          </figure>
+        </div>
+
+        <footer className="mt-auto pt-16 text-sm text-muted motion-safe:animate-rise-in motion-safe:[animation-delay:600ms]">
           a prototype by poornima
         </footer>
       </div>
