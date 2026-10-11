@@ -18,4 +18,5 @@ export type ChatMessage = {
   role: "user" | "future";
   text: string;
   used?: { id: string; why: string }[]; // memory receipts: which memories a reply used, and why
+  askedAgain?: boolean; // UI only: a user message re-sent with "ask again" after a memory changed
 };
