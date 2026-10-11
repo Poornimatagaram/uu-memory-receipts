@@ -35,3 +35,37 @@ In Python it would be `used: NotRequired[list[Receipt]]`, where `Receipt` is a T
 
 ### Quiz
 Every entry in `memories.json` is valid, yet `const memories: Memory[] = memoriesJson;` is a type error. Why does TypeScript complain, and what is the practical difference between fixing it with `as Memory[]` and validating the data at runtime?
+
+## Step 4: The chat API route
+
+### What I built
+A backend endpoint, `POST /api/chat`, that takes Maya's message, the chat history, and her memories, then asks Claude (`claude-sonnet-5-5`) to reply as future Maya and return JSON: `{"reply": "...", "used": [{"id": "m01", "why": "..."}]}`. It rejects bad requests with clear 400 errors, never sends forgotten memories to Claude, and falls back to a friendly reply if Claude's output can't be parsed. There's no UI yet; you test it with curl. **Your turn:** `verifyReceipts` in `src/lib/receipts.ts` is a `TODO(human)` stub that returns `[]`, so `used` stays empty until you implement it.
+
+### Files changed
+- `src/app/api/chat/route.ts` (new): the endpoint. It validates the body, filters out forgotten memories, calls Claude, parses the JSON reply, and passes the receipts through `verifyReceipts`.
+- `src/lib/prompt.ts` (new): `buildSystemPrompt(memories)` writes future Maya's instructions (persona, voice, safety, output format) and lists each memory as `- [m05] question, 2026-07-29: ...`, adding `(corrected by user)` where a memory was corrected. `REPLY_SCHEMA` is the JSON Schema the reply must match.
+- `src/lib/receipts.ts` (new): the `Receipt` type and the `verifyReceipts(used, activeMemoryIds)` stub for you to implement. It lives outside `route.ts` because a route file may only export HTTP handlers like `POST`.
+- `package.json`: unchanged. `@anthropic-ai/sdk` was already installed.
+
+### Key concepts
+- **The file path is the URL, and the function name is the HTTP method.** `src/app/api/chat/route.ts` exporting `async function POST(request)` is like `@app.post("/api/chat")` in FastAPI. Next.js answers other methods (like GET) with `405 Method Not Allowed` automatically.
+- **No automatic validation.** FastAPI checks the body against a Pydantic model and returns 422 for you. Here `await request.json()` gives you whatever was sent, so we store it as `unknown` (TypeScript's "could be anything") and check it by hand with `typeof x === "string"` and `Array.isArray(x)`, like writing `isinstance` checks yourself. `Response.json(data, { status: 400 })` is like `JSONResponse(content=data, status_code=400)`.
+- **Environment variables.** `process.env.ANTHROPIC_API_KEY` is `os.environ.get("ANTHROPIC_API_KEY")`. Next.js loads `.env.local` for you, like `python-dotenv`. Variables are server-only unless their name starts with `NEXT_PUBLIC_`, so the key never reaches the browser. On Vercel you set it in the project settings instead.
+- **`try/catch` with `instanceof`.** This is `try/except`, catching specific exception classes, most specific first: `Anthropic.RateLimitError` before the general `Anthropic.APIError`, like catching `HTTPException` subclasses before `Exception`.
+- **Type guards.** `function isReceipt(value: unknown): value is Receipt` returns a boolean, and TypeScript then treats `value` as a `Receipt` wherever the check passed. Python analogy: `TypeGuard[Receipt]` from `typing`. Similarly, `if (block.type === "text")` lets you read `block.text`, like `match` on a tagged union.
+- **Prompt instructions vs. structured outputs.** At first the prompt alone asked for JSON. In testing, when the history contained earlier plain-text replies, Claude copied that style and skipped the JSON. Passing `output_config.format` with a JSON Schema makes Claude's output match the schema, a bit like FastAPI's `response_model`, except it's enforced while Claude writes. We still parse defensively, because a reply cut off by `max_tokens` can be incomplete.
+
+### One line worth understanding
+```ts
+const activeMemories = (memories as Memory[]).filter((m) => m.status !== "forgotten");
+```
+- `const activeMemories =`: a variable that can't be reassigned, like annotating it with `typing.Final` (except TypeScript enforces it).
+- `(memories as Memory[])`: a cast, like `typing.cast(list[Memory], memories)`. It's a promise to the compiler, not a check: we only verified that `memories` is an array, not what's inside it.
+- `.filter(...)`: keep the items where the function returns `true`, like `[m for m in memories if ...]`.
+- `(m) => ...`: an arrow function, TypeScript's `lambda m: ...`.
+- `m.status !== "forgotten"`: "status is not forgotten". `!==` is strict inequality: no type conversion, so always use it instead of `!=`.
+
+In Python: `active_memories = [m for m in cast(list[Memory], memories) if m["status"] != "forgotten"]`.
+
+### Quiz
+The route calls `verifyReceipts(parsed.used, activeMemories.map((m) => m.id))`, passing only the active ids, not every id in the request. Suppose we passed every id instead. Which user action would expose the bug, and what would the user see?
