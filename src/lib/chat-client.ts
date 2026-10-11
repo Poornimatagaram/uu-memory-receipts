@@ -1,12 +1,39 @@
+import { historyForRequest, type HistoryItem } from "@/lib/history";
 import type { Receipt } from "@/lib/receipts";
 import type { ChatMessage, Memory } from "@/lib/types";
 
 // The browser side of POST /api/chat (src/app/api/chat/route.ts).
 export type ChatRequest = {
   message: string;
-  history: ChatMessage[]; // the messages before `message`
-  memories: Memory[];
+  history: ChatMessage[]; // the messages before `message`, as shown on screen
+  memories: Memory[]; // all of maya's memories, in their current state
 };
+
+// The fields of a memory the server needs. `label` is only for chips, and
+// `originalText` is the wording the user said was wrong, so neither is sent.
+type MemoryForRequest = Pick<Memory, "id" | "type" | "date" | "text" | "status">;
+
+// What actually goes over the wire.
+type ChatRequestBody = {
+  message: string;
+  history: HistoryItem[];
+  memories: MemoryForRequest[];
+};
+
+// The one place a request body is built, so every way of sending (a normal
+// message, "ask again", "try again") gets the same treatment:
+// - forgotten memories are left out (the route also drops them, as a backstop),
+// - each memory is copied field by field, so nothing extra like `originalText` slips in,
+// - earlier replies that used a since-changed memory are redacted (src/lib/history.ts).
+function buildRequestBody({ message, history, memories }: ChatRequest): ChatRequestBody {
+  return {
+    message,
+    history: historyForRequest(history, memories),
+    memories: memories
+      .filter((m) => m.status !== "forgotten")
+      .map(({ id, type, date, text, status }) => ({ id, type, date, text, status })),
+  };
+}
 
 export type ChatReply = {
   reply: string;
@@ -23,7 +50,7 @@ export async function askFutureMaya(request: ChatRequest): Promise<ChatReply> {
     response = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(request),
+      body: JSON.stringify(buildRequestBody(request)),
     });
   } catch {
     // fetch only throws when no response came back at all (offline, server down).

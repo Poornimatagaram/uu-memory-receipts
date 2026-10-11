@@ -11,6 +11,8 @@
   --accent-ink: #ffffff; /* text on top of --accent */
   --accent-soft: #e2ebe5; /* receipt chips */
   --danger: #a3412c; /* "not sent" errors */
+  --warm: #f1e2d3; /* welcome screen: the soft glow and step numbers */
+  --warm-ink: #8a5a3c; /* text on --warm, and the welcome's small headings */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -24,6 +26,8 @@
     --accent-ink: #0f1f19;
     --accent-soft: #24312b;
     --danger: #e5917c;
+    --warm: #2c2420;
+    --warm-ink: #e2b48f;
   }
 }
 
@@ -39,16 +43,21 @@
   --color-accent-ink: var(--accent-ink);
   --color-accent-soft: var(--accent-soft);
   --color-danger: var(--danger);
+  --color-warm: var(--warm);
+  --color-warm-ink: var(--warm-ink);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-/* Gentle entrances for the memory panel. Each --animate-NAME becomes an
-   animate-NAME class. We only use them behind motion-safe: (see MemoryPanel). */
+/* Gentle entrances for the memory panel and the welcome screen. Each
+   --animate-NAME becomes an animate-NAME class. We only use them behind
+   motion-safe:, so they're off for anyone who asks for reduced motion. */
 @theme {
   --animate-fade-in: fade-in 200ms ease-out;
   --animate-sheet-up: sheet-up 240ms ease-out;
   --animate-panel-in: panel-in 240ms ease-out;
+  /* "both" keeps a delayed element hidden until its turn (see src/app/page.tsx). */
+  --animate-rise-in: rise-in 600ms ease-out both;
 
   @keyframes fade-in {
     from {
@@ -63,6 +72,12 @@
   @keyframes panel-in {
     from {
       transform: translateX(100%);
+    }
+  }
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
     }
   }
 }

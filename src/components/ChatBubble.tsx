@@ -4,7 +4,7 @@ import type { ChatMessage, Memory } from "@/lib/types";
 
 type ChatBubbleProps = {
   message: ChatMessage;
-  memories: Memory[]; // used to look up each receipt's date and type
+  memories: Memory[]; // used to look up each receipt's label and date
   onOpenReceipt: (receipt: Receipt) => void;
 };
 

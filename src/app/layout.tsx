@@ -13,7 +13,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "future maya · memory receipts",
+  title: {
+    // A page that sets title: "future maya" gets the tab title "future maya · memory receipts".
+    template: "%s · memory receipts",
+    default: "memory receipts", // for any page that doesn't set its own title
+  },
   description: "Chat with future maya and see which memories each reply used.",
 };
 

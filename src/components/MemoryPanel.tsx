@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type RefObject } from "react";
 import { flushSync } from "react-dom";
+import { longDate } from "@/lib/dates";
 import type { Receipt } from "@/lib/receipts";
 import type { Memory } from "@/lib/types";
 
@@ -113,10 +114,10 @@ export default function MemoryPanel({ receipt, memory, onClose, onCorrect, onFor
   const isCorrected = memory?.status === "corrected";
   const isForgotten = memory?.status === "forgotten";
 
-  let title = "what future maya remembered";
-  if (!memory) {
-    title = "memory not found";
-  } else if (isForgotten) {
+  // The heading is the memory's label, the same words as the chip that was tapped.
+  // A forgotten memory keeps a neutral heading, since its content stays hidden here.
+  let title = memory?.label ?? "memory not found";
+  if (isForgotten) {
     title = "a forgotten memory";
   }
 
@@ -132,7 +133,8 @@ export default function MemoryPanel({ receipt, memory, onClose, onCorrect, onFor
       <section
         role="dialog"
         aria-modal="true"
-        aria-labelledby="memory-panel-title"
+        // Two ids: screen readers announce the name as "memory receipt, rough code review".
+        aria-labelledby="memory-panel-kind memory-panel-title"
         className="absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto overscroll-contain rounded-t-3xl bg-surface px-6 pt-4 pb-8 shadow-2xl motion-safe:animate-sheet-up md:inset-y-0 md:right-0 md:left-auto md:max-h-none md:w-96 md:rounded-tr-none md:rounded-bl-3xl md:pt-6 md:motion-safe:animate-panel-in"
       >
         {/* A grab-handle look, so the sheet reads as a sheet on phones. */}
@@ -140,7 +142,9 @@ export default function MemoryPanel({ receipt, memory, onClose, onCorrect, onFor
 
         <header className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs tracking-wide text-muted uppercase">memory receipt</p>
+            <p id="memory-panel-kind" className="text-xs tracking-wide text-muted uppercase">
+              memory receipt
+            </p>
             <h2 id="memory-panel-title" className="mt-1 text-lg font-medium">
               {title}
             </h2>
@@ -233,7 +237,8 @@ export default function MemoryPanel({ receipt, memory, onClose, onCorrect, onFor
             <dl className="mt-4 grid grid-cols-3 gap-3 text-sm">
               <div>
                 <dt className="text-xs text-muted">date</dt>
-                <dd className="mt-0.5">{memory.date}</dd>
+                {/* The chip says "jul 13"; here there's room for the year too. */}
+                <dd className="mt-0.5">{longDate(memory.date)}</dd>
               </div>
               <div>
                 <dt className="text-xs text-muted">type</dt>

@@ -29,6 +29,8 @@ export function isMemory(value: unknown): value is Memory {
   return (
     typeof m.id === "string" &&
     m.id !== "" &&
+    typeof m.label === "string" &&
+    m.label.trim() !== "" &&
     typeof m.type === "string" &&
     Object.hasOwn(MEMORY_TYPES, m.type) &&
     typeof m.date === "string" &&

@@ -1,3 +1,4 @@
+import { shortDate } from "@/lib/dates";
 import type { Receipt } from "@/lib/receipts";
 import type { Memory } from "@/lib/types";
 
@@ -14,11 +15,11 @@ export default function ReceiptChip({ receipt, memory, onOpen }: ReceiptChipProp
   const corrected = memory?.status === "corrected";
   const forgotten = memory?.status === "forgotten";
 
-  // The date is shown exactly as stored. new Date("2026-07-13") would
-  // read it as UTC midnight and show July 12 in US time zones.
-  const label = memory ? `${memory.date} · ${memory.type}` : "memory not found";
+  // "rough code review · aug 7". shortDate splits the date string instead of
+  // using new Date(), which would show the day before in US time zones.
+  const label = memory ? `${memory.label} · ${shortDate(memory.date)}` : "memory not found";
   // Screen readers can't see a ✎ or a strikethrough, so aria-label spells the
-  // status out: "memory used: 2026-08-07 · feeling, corrected by you". It
+  // status out: "memory used: rough code review · aug 7, corrected by you". It
   // replaces the button's text for screen readers, so it repeats the visible label.
   let status = "";
   if (corrected) {
