@@ -145,8 +145,16 @@ export default function WelcomePage() {
           />
         </div>
 
+        {/* {" "} keeps the space before the link: a line break next to a tag is dropped.
+            The link is --accent, underlined (5.8:1 in light mode, 7.7:1 in dark). */}
         <footer className="mt-auto pt-16 text-sm text-muted motion-safe:animate-rise-in motion-safe:[animation-delay:600ms]">
-          a prototype by poornima
+          a prototype by poornima ·{" "}
+          <Link
+            href="/about"
+            className="rounded-sm text-accent underline underline-offset-4 hover:decoration-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            read the write-up
+          </Link>
         </footer>
       </div>
     </main>
