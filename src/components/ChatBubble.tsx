@@ -18,14 +18,20 @@ type ChatBubbleProps = {
   // The chat sets this: when the bubble first appears, its chips rise in. The
   // preview's static card leaves it off, so it's still.
   animateArrival?: boolean;
-  // A reply to an "ask again": a soft glow around the bubble, once, as it arrives.
+  // A reply to an "Ask again": a soft glow around the bubble, once, as it arrives.
   glowOnArrival?: boolean;
 };
 
 // A bubble's shape and colors. Every bubble uses this: messages, the welcome
 // page's preview, and the typing dots, so they all stay the same.
+// The widest a bubble gets is --bubble-max, a CSS variable, or 85% of its column
+// when nothing sets it. The chat sets it to 75% on the scrolling area around its
+// messages, and every bubble inside inherits it, like a default argument that a
+// parent can override. The welcome preview sets nothing, so its wording keeps
+// wrapping exactly as it was tuned to.
 export function bubbleLook(role: ChatMessage["role"]): string {
-  const shape = "max-w-[85%] rounded-2xl px-4 py-2.5 leading-relaxed whitespace-pre-wrap wrap-break-word";
+  const shape =
+    "max-w-[var(--bubble-max,85%)] rounded-2xl px-4 py-2.5 leading-relaxed whitespace-pre-wrap wrap-break-word";
   return role === "user"
     ? `${shape} rounded-br-md bg-accent text-accent-ink`
     : `${shape} rounded-bl-md border border-line bg-surface`;
@@ -39,7 +45,7 @@ export function messageColumnLook(role: ChatMessage["role"]): string {
 }
 export const CHIP_ROW_LOOK = "flex max-w-[85%] flex-wrap gap-1.5";
 
-// One message. The user's bubbles sit on the right, future maya's on the left
+// One message. The user's bubbles sit on the right, future Maya's on the left
 // with one chip per memory the reply used.
 //
 // It uses hooks (through usePlayOnce), so it only runs in Client Components:
@@ -62,16 +68,16 @@ export default function ChatBubble({
         ref={glowRef}
         className={`${bubbleLook(message.role)} ${glowing ? "motion-safe:glow-once" : ""}`}
       >
-        <span className="sr-only">{isUser ? "you: " : "future maya: "}</span>
+        <span className="sr-only">{isUser ? "You: " : "Future Maya: "}</span>
         {message.text}
       </p>
 
       {/* A re-sent question, so the two replies can be compared. */}
-      {message.askedAgain && <p className="text-xs text-muted">asked again with updated memories</p>}
+      {message.askedAgain && <p className="text-xs text-muted">Asked again with updated memories</p>}
 
       {/* An empty list renders nothing: no chips, no gap, no placeholder. */}
       {receipts.length > 0 && (
-        <ul aria-label="memories this reply used" className={CHIP_ROW_LOOK}>
+        <ul aria-label="Memories this reply used" className={CHIP_ROW_LOOK}>
           {receipts.map((receipt, index) => (
             <ArrivingChip key={`${index}-${receipt.id}`} index={index} animate={animateArrival}>
               <ReceiptChip
@@ -104,8 +110,8 @@ function ArrivingChip({ index, animate, children }: { index: number; animate: bo
   );
 }
 
-// Three dots in a future-maya bubble while a reply is on its way. It's only a
-// picture (aria-hidden): the chat page announces "future maya is typing" in
+// Three dots in a future-Maya bubble while a reply is on its way. It's only a
+// picture (aria-hidden): the chat page announces "Future Maya is typing" in
 // its role="status" line. The dots bob one after another (each starts 160ms
 // later), and motion-safe: keeps them still for anyone who asks for reduced motion.
 export function TypingBubble() {

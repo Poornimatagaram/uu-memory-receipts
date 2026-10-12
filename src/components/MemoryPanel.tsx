@@ -2,11 +2,29 @@ import { useEffect, useRef, useState, type FormEvent, type RefObject } from "rea
 import { flushSync } from "react-dom";
 import { longDate } from "@/lib/dates";
 import type { Receipt } from "@/lib/receipts";
-import type { Memory } from "@/lib/types";
+import type { Memory, MemoryStatus, MemoryType } from "@/lib/types";
 import { usePlayOnce } from "@/lib/use-play-once";
 
 // Long enough for a few sentences (the longest seed memory is 227 characters).
 const MAX_MEMORY_CHARS = 500;
+
+// What the panel calls each type and status. The data stores them as lowercase
+// codes ("goal", "corrected") that the rest of the app checks against, so the
+// codes stay as they are and get a display name here. Record<MemoryType, string>
+// makes TypeScript check that every code has one, like a dict whose keys must
+// match an Enum exactly.
+const TYPE_NAMES: Record<MemoryType, string> = {
+  goal: "Goal",
+  project: "Project",
+  question: "Question",
+  feeling: "Feeling",
+  preference: "Preference",
+};
+const STATUS_NAMES: Record<MemoryStatus, string> = {
+  active: "Active",
+  corrected: "Corrected",
+  forgotten: "Forgotten",
+};
 
 type MemoryPanelProps = {
   receipt: Receipt; // the chip that was tapped: which memory, and why it was used
@@ -106,12 +124,12 @@ export default function MemoryPanel({ receipt, memory, onClose, onCorrect, onFor
     }
     onCorrect(memory.id, trimmedDraft);
     fadeInNewText();
-    // Only the first correction strikes a line through. After that, the "originally"
+    // Only the first correction strikes a line through. After that, the "Originally:"
     // line keeps the very first wording, which is already struck through.
     if (!isCorrected) {
       strikeOriginal();
     }
-    setAnnouncement("corrected. future maya will use your version from now on.");
+    setAnnouncement("Corrected. Future Maya will use your version from now on.");
     switchMode("view", correctButtonRef);
   }
 
@@ -120,7 +138,7 @@ export default function MemoryPanel({ receipt, memory, onClose, onCorrect, onFor
       return;
     }
     onForget(memory.id);
-    setAnnouncement("forgotten. future maya won't use this memory again.");
+    setAnnouncement("Forgotten. Future Maya won't use this memory again.");
     // The action buttons are gone now, so focus goes to the close button.
     switchMode("view", closeButtonRef);
   }
@@ -130,9 +148,9 @@ export default function MemoryPanel({ receipt, memory, onClose, onCorrect, onFor
 
   // The heading is the memory's label, the same words as the chip that was tapped.
   // A forgotten memory keeps a neutral heading, since its content stays hidden here.
-  let title = memory?.label ?? "memory not found";
+  let title = memory?.label ?? "Memory not found";
   if (isForgotten) {
-    title = "a forgotten memory";
+    title = "A forgotten memory";
   }
 
   return (
@@ -147,7 +165,7 @@ export default function MemoryPanel({ receipt, memory, onClose, onCorrect, onFor
       <section
         role="dialog"
         aria-modal="true"
-        // Two ids: screen readers announce the name as "memory receipt, rough code review".
+        // Two ids: screen readers announce the name as "Memory receipt, Rough code review".
         aria-labelledby="memory-panel-kind memory-panel-title"
         className="absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto overscroll-contain rounded-t-3xl bg-surface px-6 pt-4 pb-8 shadow-2xl motion-safe:animate-sheet-up md:inset-y-0 md:right-0 md:left-auto md:max-h-none md:w-96 md:rounded-tr-none md:rounded-bl-3xl md:pt-6 md:motion-safe:animate-panel-in"
       >
@@ -156,10 +174,12 @@ export default function MemoryPanel({ receipt, memory, onClose, onCorrect, onFor
 
         <header className="flex items-start justify-between gap-4">
           <div>
-            <p id="memory-panel-kind" className="text-xs tracking-wide text-muted uppercase">
-              memory receipt
+            {/* Sentence case like every other label, so no all-caps styling. */}
+            <p id="memory-panel-kind" className="text-xs text-muted">
+              Memory receipt
             </p>
-            <h2 id="memory-panel-title" className="mt-1 text-lg font-medium">
+            {/* The memory's name, in the heading font. */}
+            <h2 id="memory-panel-title" className="mt-1 font-display text-xl font-medium">
               {title}
             </h2>
           </div>
@@ -169,7 +189,7 @@ export default function MemoryPanel({ receipt, memory, onClose, onCorrect, onFor
             onClick={onClose}
             className="rounded-full border border-line px-3 py-1 text-sm text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
-            close
+            Close
           </button>
         </header>
 
@@ -187,7 +207,7 @@ export default function MemoryPanel({ receipt, memory, onClose, onCorrect, onFor
                     isCorrected ? "bg-accent-soft text-accent" : "border border-line text-muted"
                   }`}
                 >
-                  {isCorrected ? "corrected by you" : "forgotten"}
+                  {isCorrected ? "Corrected by you" : "Forgotten"}
                 </span>
               </p>
             )}
@@ -195,7 +215,7 @@ export default function MemoryPanel({ receipt, memory, onClose, onCorrect, onFor
             {mode === "editing" ? (
               <form onSubmit={saveCorrection} className="mt-5">
                 <label htmlFor="memory-edit" className="text-sm font-medium">
-                  {"what's the right version?"}
+                  {"What's the right version?"}
                 </label>
                 {/* text-base (16px) stops iPhones from zooming in when the box is tapped. */}
                 <textarea
@@ -213,14 +233,14 @@ export default function MemoryPanel({ receipt, memory, onClose, onCorrect, onFor
                     disabled={!canSave}
                     className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-accent-ink transition-opacity focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-40"
                   >
-                    save
+                    Save
                   </button>
                   <button
                     type="button"
                     onClick={() => switchMode("view", correctButtonRef)}
                     className="rounded-full border border-line px-4 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                   >
-                    cancel
+                    Cancel
                   </button>
                   <span className="ml-auto text-xs text-muted">
                     {draft.length}/{MAX_MEMORY_CHARS}
@@ -230,8 +250,8 @@ export default function MemoryPanel({ receipt, memory, onClose, onCorrect, onFor
             ) : isForgotten ? (
               // The text stays hidden: the user asked for this memory to go away.
               <p className="mt-3 rounded-2xl bg-background px-4 py-3 text-sm leading-relaxed">
-                you asked future maya to forget this, so its text is hidden and new replies
-                won&apos;t use it. older replies keep this chip, so the chat history stays honest.
+                You asked future Maya to forget this, so its text is hidden and new replies
+                won&apos;t use it. Older replies keep this chip, so the chat history stays honest.
               </p>
             ) : (
               <>
@@ -247,7 +267,7 @@ export default function MemoryPanel({ receipt, memory, onClose, onCorrect, onFor
                   <p className="mt-2 px-1 text-sm leading-relaxed text-muted">
                     {/* strike-draw (globals.css) draws the line left to right, then hands
                         back to the <del>'s own strikethrough. */}
-                    originally:{" "}
+                    Originally:{" "}
                     <del
                       ref={strikeRef}
                       className={striking ? "motion-safe:strike-draw" : undefined}
@@ -261,28 +281,28 @@ export default function MemoryPanel({ receipt, memory, onClose, onCorrect, onFor
 
             <dl className="mt-4 grid grid-cols-3 gap-3 text-sm">
               <div>
-                <dt className="text-xs text-muted">date</dt>
-                {/* The chip says "jul 13"; here there's room for the year too. */}
+                <dt className="text-xs text-muted">Date</dt>
+                {/* The chip says "Jul 13"; here there's room for the year too. */}
                 <dd className="mt-0.5">{longDate(memory.date)}</dd>
               </div>
               <div>
-                <dt className="text-xs text-muted">type</dt>
-                <dd className="mt-0.5">{memory.type}</dd>
+                <dt className="text-xs text-muted">Type</dt>
+                <dd className="mt-0.5">{TYPE_NAMES[memory.type]}</dd>
               </div>
               <div>
-                <dt className="text-xs text-muted">status</dt>
-                <dd className="mt-0.5">{memory.status}</dd>
+                <dt className="text-xs text-muted">Status</dt>
+                <dd className="mt-0.5">{STATUS_NAMES[memory.status]}</dd>
               </div>
             </dl>
           </>
         ) : (
           <p className="mt-5 rounded-2xl bg-background px-4 py-3 text-sm leading-relaxed">
-            {`this reply pointed to a memory (id "${receipt.id}") that isn't in maya's memories right now, so there's nothing to show.`}
+            {`This reply pointed to a memory (id "${receipt.id}") that isn't in Maya's memories right now, so there's nothing to show.`}
           </p>
         )}
 
         <section className="mt-6">
-          <h3 className="text-sm font-medium">why future maya used this</h3>
+          <h3 className="text-sm font-medium">Why future Maya used this</h3>
           <p className="mt-1 text-sm leading-relaxed text-foreground/80">{receipt.why}</p>
         </section>
 
@@ -293,7 +313,7 @@ export default function MemoryPanel({ receipt, memory, onClose, onCorrect, onFor
               // A labelled group: screen readers read the question when focus lands on a button.
               <div role="group" aria-labelledby="forget-question">
                 <p id="forget-question" className="text-sm font-medium">
-                  forget this memory? future maya won&apos;t use it again.
+                  Forget this memory? Future Maya won&apos;t use it again.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
@@ -301,7 +321,7 @@ export default function MemoryPanel({ receipt, memory, onClose, onCorrect, onFor
                     onClick={confirmForget}
                     className="rounded-full border border-danger/60 px-4 py-2 text-sm font-medium text-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                   >
-                    yes, forget it
+                    Yes, forget it
                   </button>
                   <button
                     ref={cancelForgetButtonRef}
@@ -309,7 +329,7 @@ export default function MemoryPanel({ receipt, memory, onClose, onCorrect, onFor
                     onClick={() => switchMode("view", forgetButtonRef)}
                     className="rounded-full border border-line px-4 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                   >
-                    cancel
+                    Cancel
                   </button>
                 </div>
               </div>
@@ -321,16 +341,16 @@ export default function MemoryPanel({ receipt, memory, onClose, onCorrect, onFor
                   onClick={startEditing}
                   className="rounded-full border border-line px-4 py-2 text-sm transition-colors hover:border-accent/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
-                  {"that's not right"}
+                  {"That's not right"}
                 </button>
                 <button
                   ref={forgetButtonRef}
                   type="button"
-                  // Focus starts on "cancel", the safe choice, since forgetting can't be undone.
+                  // Focus starts on "Cancel", the safe choice, since forgetting can't be undone.
                   onClick={() => switchMode("confirmingForget", cancelForgetButtonRef)}
                   className="rounded-full border border-line px-4 py-2 text-sm transition-colors hover:border-accent/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
-                  forget this
+                  Forget this
                 </button>
               </div>
             )}

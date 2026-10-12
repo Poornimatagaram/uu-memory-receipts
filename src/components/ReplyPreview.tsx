@@ -24,8 +24,8 @@ function subscribeToVisibility(onChange: () => void) {
 const tabIsHidden = () => document.visibilityState === "hidden";
 const tabIsHiddenOnServer = () => false;
 
-// The welcome page's "what a reply looks like" card. It plays an 8-second loop of
-// a correction landing: a reply that leans on maya's old research goal, its chips,
+// The welcome page's "What a reply looks like" card. It plays an 8-second loop of
+// a correction landing: a reply that leans on Maya's old research goal, its chips,
 // a highlight on that chip, the chip gaining its ✎, and the reply changing.
 //
 // Two layers, both made of the real ChatBubble / ReceiptChip pieces:
@@ -37,7 +37,8 @@ const tabIsHiddenOnServer = () => false;
 //
 // The only interactive thing is the pause button (WCAG 2.2.2: motion that runs
 // longer than 5 seconds needs a way to pause it). The loop also pauses on its own
-// while the tab is hidden.
+// while the tab is hidden. Both also pause the page's breathing background
+// (a rule in globals.css that looks for data-paused).
 export default function ReplyPreview({ openingText, reply, memories, correctedId, className = "" }: ReplyPreviewProps) {
   const [pausedByUser, setPausedByUser] = useState(false);
   const tabHidden = useSyncExternalStore(subscribeToVisibility, tabIsHidden, tabIsHiddenOnServer);
@@ -49,8 +50,10 @@ export default function ReplyPreview({ openingText, reply, memories, correctedId
 
   return (
     <figure aria-labelledby="reply-preview" className={`relative ${className}`}>
-      <figcaption id="reply-preview" className="text-sm font-medium text-warm-ink">
-        what a reply looks like
+      {/* Styled like the page's small headings (src/app/page.tsx): same font, same
+          20px line, so the pause button below still sits on this line. */}
+      <figcaption id="reply-preview" className="font-display text-base/5 font-medium text-warm-ink">
+        What a reply looks like
       </figcaption>
 
       {/* p-3 on phones leaves a 320px screen room for the longest chip on one line. */}
@@ -106,7 +109,7 @@ export default function ReplyPreview({ openingText, reply, memories, correctedId
       </div>
 
       {/* Sits on the caption's line, at the right. Hidden with reduced motion, since
-          then nothing moves. Its name reads "pause animation" or "play animation". */}
+          then nothing moves. Its name reads "Pause animation" or "Play animation". */}
       <button
         type="button"
         onClick={() => setPausedByUser((wasPaused) => !wasPaused)}
@@ -122,14 +125,14 @@ export default function ReplyPreview({ openingText, reply, memories, correctedId
             </>
           )}
         </svg>
-        {pausedByUser ? "play" : "pause"}
+        {pausedByUser ? "Play" : "Pause"}
         <span className="sr-only"> animation</span>
       </button>
     </figure>
   );
 }
 
-// The soft ring that lands on the research goal chip. Both copies run the same
+// The soft ring that lands on the "Research goal" chip. Both copies run the same
 // keyframes; whichever chip is showing shows its ring.
 function Highlight() {
   return (

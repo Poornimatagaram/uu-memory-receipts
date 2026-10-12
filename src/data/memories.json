@@ -1,7 +1,7 @@
 [
   {
     "id": "m01",
-    "label": "research goal",
+    "label": "Research goal",
     "type": "goal",
     "date": "2026-07-13",
     "text": "I want to become a research scientist and publish papers. The plan: a first-author workshop paper within a year, then apply to research residencies.",
@@ -9,7 +9,7 @@
   },
   {
     "id": "m02",
-    "label": "refund recall drop",
+    "label": "Refund recall drop",
     "type": "project",
     "date": "2026-07-16",
     "text": "I retrained the ticket-intent classifier on the June export and refund recall dropped from 0.81 to 0.62. Same config, same seed. I have no idea what changed yet.",
@@ -17,7 +17,7 @@
   },
   {
     "id": "m03",
-    "label": "standup doubts",
+    "label": "Standup doubts",
     "type": "feeling",
     "date": "2026-07-20",
     "text": "In standup everyone gives a crisp update and I say 'still digging into the classifier' for the fourth day in a row. I'm pretty sure I'm the only one on the team who doesn't know what they're doing.",
@@ -25,7 +25,7 @@
   },
   {
     "id": "m04",
-    "label": "morning focus block",
+    "label": "Morning focus block",
     "type": "preference",
     "date": "2026-07-24",
     "text": "I do my best thinking from 9 to 11am, so I'm blocking that time on my calendar and pushing meetings to the afternoon.",
@@ -33,7 +33,7 @@
   },
   {
     "id": "m05",
-    "label": "macro vs weighted F1",
+    "label": "Macro vs weighted F1",
     "type": "question",
     "date": "2026-07-29",
     "text": "Should we report macro-F1 or weighted F1 for the intent classifier? Refunds are only 4% of tickets, so weighted F1 looks great at 0.91 while refunds quietly get worse.",
@@ -41,7 +41,7 @@
   },
   {
     "id": "m06",
-    "label": "truncation bug found",
+    "label": "Truncation bug found",
     "type": "project",
     "date": "2026-08-03",
     "text": "I found part of the classifier bug: the new export pipeline truncates tickets at 128 tokens, and refund tickets run long because people paste whole order emails. The word 'refund' often lands after the cut.",
@@ -49,7 +49,7 @@
   },
   {
     "id": "m07",
-    "label": "rough code review",
+    "label": "Rough code review",
     "type": "feeling",
     "date": "2026-08-07",
     "text": "The code review on my feature-store backfill PR went badly. Carlos left 31 comments, mostly about naming, plus 'did you test this at all?' I had, just not on the full table. I felt sick for the rest of the afternoon.",
@@ -57,7 +57,7 @@
   },
   {
     "id": "m08",
-    "label": "reviewable PRs",
+    "label": "Reviewable PRs",
     "type": "goal",
     "date": "2026-08-10",
     "text": "I want my PRs to be easy to review: under 300 lines, a test plan in every description, and a run on the full dataset before I ask anyone to look.",
@@ -65,7 +65,7 @@
   },
   {
     "id": "m09",
-    "label": "blunt, specific feedback",
+    "label": "Blunt, specific feedback",
     "type": "preference",
     "date": "2026-08-14",
     "text": "I'd rather get blunt feedback than vague feedback, as long as it's specific. What hurt with Carlos wasn't the number of comments, it was not knowing which ones actually mattered.",
@@ -73,7 +73,7 @@
   },
   {
     "id": "m10",
-    "label": "real gain or noise",
+    "label": "Real gain or noise",
     "type": "question",
     "date": "2026-08-19",
     "text": "How do I tell whether a 2-point F1 gain on a 600-ticket eval set is real or just noise? Ren mentioned bootstrapping confidence intervals. I need to actually learn this.",
@@ -81,7 +81,7 @@
   },
   {
     "id": "m11",
-    "label": "truncation fix shipped",
+    "label": "Truncation fix shipped",
     "type": "project",
     "date": "2026-08-25",
     "text": "I shipped the truncation fix: keep the first 64 and last 64 tokens instead of only the first 128. Refund recall is back to 0.79. I also started a small eval script so we stop comparing confusion matrices by screenshot in Slack.",
@@ -89,7 +89,7 @@
   },
   {
     "id": "m12",
-    "label": "a better standup",
+    "label": "A better standup",
     "type": "feeling",
     "date": "2026-08-28",
     "text": "I gave the classifier-fix update in standup and people asked real follow-up questions. I still felt like I was faking it, just less than usual.",
@@ -97,7 +97,7 @@
   },
   {
     "id": "m13",
-    "label": "no laptop after 9pm",
+    "label": "No laptop after 9pm",
     "type": "goal",
     "date": "2026-09-03",
     "text": "No laptop after 9pm on weeknights. I keep 'just checking one run' at midnight and it's wrecking my sleep.",
@@ -105,7 +105,7 @@
   },
   {
     "id": "m14",
-    "label": "notebooks vs .py files",
+    "label": "Notebooks vs .py files",
     "type": "preference",
     "date": "2026-09-08",
     "text": "Notebooks are fine for poking around, but anything that ships goes in a .py file with tests. I learned that one the hard way in August.",
@@ -113,7 +113,7 @@
   },
   {
     "id": "m15",
-    "label": "suggested-reply pilot",
+    "label": "Suggested-reply pilot",
     "type": "project",
     "date": "2026-09-14",
     "text": "I paired with Jonah on the suggested-reply button in the support inbox. I did the ranking, he did the UI. We merged it Friday behind a flag for three pilot customers.",
@@ -121,7 +121,7 @@
   },
   {
     "id": "m16",
-    "label": "watching a real user",
+    "label": "Watching a real user",
     "type": "feeling",
     "date": "2026-09-22",
     "text": "I watched a recording of a support agent at one of the pilot shops using suggested replies. She clicked the second suggestion, said 'oh, nice,' and moved on. I rewatched it about four times.",
@@ -129,7 +129,7 @@
   },
   {
     "id": "m17",
-    "label": "speed vs quality",
+    "label": "Speed vs quality",
     "type": "question",
     "date": "2026-09-28",
     "text": "On today's customer call nobody mentioned accuracy. They just want suggestions to show up before they finish typing. How much model quality would I trade for 200ms?",
@@ -137,7 +137,7 @@
   },
   {
     "id": "m18",
-    "label": "weekend routing panel",
+    "label": "Weekend routing panel",
     "type": "project",
     "date": "2026-10-05",
     "text": "I spent the weekend building a little 'why was this ticket routed here?' panel for the support team. Nobody asked for it. I showed Jonah this morning and he wants to put it in the real UI.",
@@ -145,7 +145,7 @@
   },
   {
     "id": "m19",
-    "label": "untouched reading list",
+    "label": "Untouched reading list",
     "type": "feeling",
     "date": "2026-10-07",
     "text": "I realized I haven't opened my paper reading list since August. I've been too absorbed in the suggested-reply rollout to notice.",
@@ -153,7 +153,7 @@
   },
   {
     "id": "m20",
-    "label": "six-month check-in",
+    "label": "Six-month check-in",
     "type": "question",
     "date": "2026-10-09",
     "text": "My six-month check-in with Ren, my manager, is on Tuesday. She'll ask where I want to grow over the next year, and I don't know what to say.",

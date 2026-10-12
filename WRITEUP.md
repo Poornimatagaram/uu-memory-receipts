@@ -4,14 +4,14 @@
 
 ## Try it in 60 seconds
 
-1. Click **start talking**, then tap **"should i keep up with my paper reading list?"**
-2. Under future Maya's reply, tap the **🧠 research goal** chip. That memory is out of date.
-3. Tap **that's not right**, change it to *"I used to want research, but now I love shipping features users actually touch."*, and tap **save**.
-4. Close the panel, tap **ask again**, and compare the two replies.
+1. Click **Start talking**, then tap **"should i keep up with my paper reading list?"**
+2. Under future Maya's reply, tap the **🧠 Research goal** chip. That memory is out of date.
+3. Tap **That's not right**, change it to *"I used to want research, but now I love shipping features users actually touch."*, and tap **Save**.
+4. Close the panel, tap **Ask again**, and compare the two replies.
 
 ## What I built
 
-A future-self chat where every reply shows **which memories it used, and why.** Under each message from future Maya, small 🧠 chips name the memories behind it ("research goal · jul 13"). Tap one to see the memory and the reason it was used, then **correct it** or **forget it**. Tap "ask again," and the reply changes to reflect what you fixed.
+A future-self chat where every reply shows **which memories it used, and why.** Under each message from future Maya, small 🧠 chips name the memories behind it ("Research goal · Jul 13"). Tap one to see the memory and the reason it was used, then **correct it** or **forget it**. Tap "Ask again," and the reply changes to reflect what you fixed.
 
 The demo persona is Maya, a junior ML engineer six months into her first job. One of her memories is deliberately out of date: an early goal of becoming a research scientist, even though her recent memories show she loves shipping things users touch. Correcting that one memory visibly changes future Maya's advice.
 

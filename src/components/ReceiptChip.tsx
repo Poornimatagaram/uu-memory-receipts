@@ -11,7 +11,7 @@ type ReceiptChipProps = {
   onOpen?: (receipt: Receipt) => void;
 };
 
-// One small "memory receipt" under a future-maya reply. Tapping it opens the MemoryPanel.
+// One small "memory receipt" under a future-Maya reply. Tapping it opens the MemoryPanel.
 // The chip shows the memory's *current* status, so older replies update too: a corrected
 // memory gets a ✎, and a forgotten one stays visible (the reply did use it) but faded.
 //
@@ -26,11 +26,12 @@ export default function ReceiptChip({ receipt, memory, onOpen }: ReceiptChipProp
   // that's corrected *while you watch* pops its ✎; one that arrives corrected doesn't.
   const [correctedAtFirstRender] = useState(corrected);
 
-  // "rough code review · aug 7". shortDate splits the date string instead of
-  // using new Date(), which would show the day before in US time zones.
-  const label = memory ? `${memory.label} · ${shortDate(memory.date)}` : "memory not found";
+  // "Rough code review · Aug 7". The label comes as written in memories.json, in
+  // sentence case. shortDate splits the date string instead of using new Date(),
+  // which would show the day before in US time zones.
+  const label = memory ? `${memory.label} · ${shortDate(memory.date)}` : "Memory not found";
   // Screen readers can't see a ✎ or a strikethrough, so the status is spelled out:
-  // "rough code review · aug 7, corrected by you".
+  // "Rough code review · Aug 7, corrected by you".
   let status = "";
   if (corrected) {
     status = ", corrected by you";
@@ -87,13 +88,13 @@ export default function ReceiptChip({ receipt, memory, onOpen }: ReceiptChipProp
   }
 
   // aria-label replaces the button's text for screen readers, so it repeats the
-  // visible label: "memory used: rough code review · aug 7, corrected by you".
+  // visible label: "Memory used: Rough code review · Aug 7, corrected by you".
   return (
     <button
       type="button"
       onClick={() => onOpen(receipt)}
       aria-haspopup="dialog"
-      aria-label={`memory used: ${label}${status}`}
+      aria-label={`Memory used: ${label}${status}`}
       className={`${look} hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent`}
     >
       {face}

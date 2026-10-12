@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { flushSync } from "react-dom";
+import AmbientBackground from "@/components/AmbientBackground";
 import ChatBubble, { TypingBubble } from "@/components/ChatBubble";
 import MemoryPanel from "@/components/MemoryPanel";
 import seedMemories from "@/data/memories.json";
@@ -26,7 +27,7 @@ const STARTER_PROMPTS = [
 const SEED_MEMORIES = parseMemories(seedMemories);
 
 // A message whose request failed. It stays on screen, so it's never lost.
-// askedAgain: it was an "ask again", so "try again" should repeat it the same way.
+// askedAgain: it was an "Ask again", so "Try again" should repeat it the same way.
 type FailedSend = { text: string; reason: string; askedAgain: boolean };
 
 type SendOptions = {
@@ -34,7 +35,7 @@ type SendOptions = {
   askedAgain?: boolean; // marks the new user bubble as a re-sent question
 };
 
-// What "ask again" sends: the last question, plus the history from *before* that
+// What "Ask again" sends: the last question, plus the history from *before* that
 // question was first asked. The old answer is left out on purpose: it may quote
 // the memory that was just corrected or forgotten, and a reply that can see its
 // earlier answer tends to repeat it. Without it, the new reply comes only from
@@ -63,12 +64,12 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [openReceipt, setOpenReceipt] = useState<Receipt | null>(null);
   const [failed, setFailed] = useState<FailedSend | null>(null);
-  // true right after a memory is corrected or forgotten: shows the "ask again" notice.
+  // true right after a memory is corrected or forgotten: shows the "Ask again" notice.
   const [memoryNotice, setMemoryNotice] = useState(false);
-  // true while the "start over?" question is showing under the header.
+  // true while the "Start over?" question is showing under the header.
   const [confirmingStartOver, setConfirmingStartOver] = useState(false);
 
-  // Numbers each request. "start over" bumps it too, so when a reply comes back
+  // Numbers each request. "Start over" bumps it too, so when a reply comes back
   // for an older request (one sent before starting over), send() can tell it's
   // stale and drop it instead of letting it land in the fresh chat.
   // A ref, not state: changing it shouldn't redraw anything.
@@ -133,7 +134,7 @@ export default function ChatPage() {
         return;
       }
       // Take the message out of the history, so the next request still alternates
-      // user/future/user, but keep it on screen with a "try again" button.
+      // user/future/user, but keep it on screen with a "Try again" button.
       setMessages(shown);
       setFailed({
         text: message,
@@ -157,7 +158,7 @@ export default function ChatPage() {
     }
   }
 
-  // "try again" repeats a failed request the same way it was first sent.
+  // "Try again" repeats a failed request the same way it was first sent.
   function retryFailed() {
     if (failed?.askedAgain) {
       askAgain();
@@ -210,11 +211,11 @@ export default function ChatPage() {
     setMemoryNotice(false);
   }
 
-  // "start over" asks first, because it throws away the user's memory fixes.
-  // flushSync draws the question now, so its "cancel" button exists to focus.
+  // "Start over" asks first, because it throws away the user's memory fixes.
+  // flushSync draws the question now, so its "Cancel" button exists to focus.
   function askToStartOver() {
     flushSync(() => setConfirmingStartOver(true));
-    cancelStartOverRef.current?.focus(); // the safe choice, like "forget this"
+    cancelStartOverRef.current?.focus(); // the safe choice, like "Forget this"
   }
 
   function cancelStartOver() {
@@ -243,25 +244,33 @@ export default function ChatPage() {
   const openMemory = openReceipt ? memories.find((m) => m.id === openReceipt.id) : undefined;
   const showStarters = messages.length === 0 && failed === null;
   // Offered only when there's a finished exchange to redo (so never while a reply is
-  // loading). While a failed message is waiting, its own "try again" is the way
+  // loading). While a failed message is waiting, its own "Try again" is the way
   // forward, and it already uses the new memories.
   const canAskAgain = !chatIsFull && failed === null && findAskAgain(messages) !== null;
   // Memories the user corrected or forgot. Starting over would undo these.
   const changedCount = memories.filter((m) => m.status !== "active").length;
   const nothingToReset = messages.length === 0 && failed === null && changedCount === 0;
-  let startOverQuestion = "start over? this clears the chat.";
+  let startOverQuestion = "Start over? This clears the chat.";
   if (changedCount === 1) {
-    startOverQuestion = "start over? this clears the chat and undoes your change to 1 memory.";
+    startOverQuestion = "Start over? This clears the chat and undoes your change to 1 memory.";
   } else if (changedCount > 1) {
-    startOverQuestion = `start over? this clears the chat and undoes your changes to ${changedCount} memories.`;
+    startOverQuestion = `Start over? This clears the chat and undoes your changes to ${changedCount} memories.`;
   }
 
   return (
     <>
-      {/* inert: while the panel is open, nothing behind it can be clicked or focused. */}
+      {/* The welcome page's background, calmed down: fainter shapes that hold
+          still, so nothing moves behind the conversation. It's fixed behind
+          everything, so it sits outside <main> (and outside its inert). */}
+      <AmbientBackground mood="calm" />
+
+      {/* inert: while the panel is open, nothing behind it can be clicked or focused.
+          The column is the full width on phones and at most 768px (max-w-3xl) on
+          bigger screens. From md (768px) up there's room beside it, so hairlines
+          mark its edges. */}
       <main
         inert={openReceipt !== null}
-        className="mx-auto flex h-dvh w-full max-w-md flex-col sm:border-x sm:border-line"
+        className="mx-auto flex h-dvh w-full max-w-3xl flex-col md:border-x md:border-line"
       >
         <header className="flex items-center justify-between gap-2 border-b border-line px-4 py-4 sm:px-5">
           <div className="flex min-w-0 items-center gap-2">
@@ -270,7 +279,7 @@ export default function ChatPage() {
                 instead of throwing it away, so the chat is still here on return. */}
             <Link
               href="/"
-              aria-label="back to the welcome page"
+              aria-label="Back to the welcome page"
               className="-ml-2 flex size-8 shrink-0 items-center justify-center rounded-full text-lg text-muted transition-colors hover:bg-surface hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               ←
@@ -278,13 +287,15 @@ export default function ChatPage() {
             {/* Decoration: the heading next to it already says who this is. */}
             <span
               aria-hidden="true"
-              className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent-soft font-medium text-accent"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent-soft font-display font-medium text-accent"
             >
-              m
+              M
             </span>
             <div className="min-w-0">
-              <h1 className="text-lg leading-tight font-medium">future maya</h1>
-              <p className="text-sm text-muted">maya, two years from now</p>
+              {/* Her name in the heading font. text-xl: Fraunces looks smaller than
+                  Geist at the same size. */}
+              <h1 className="font-display text-xl leading-tight font-medium">Future Maya</h1>
+              <p className="text-sm text-muted">Maya, two years from now</p>
             </div>
           </div>
           <button
@@ -294,12 +305,12 @@ export default function ChatPage() {
             disabled={nothingToReset}
             className="shrink-0 rounded-full border border-line px-3 py-1 text-sm text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-40 disabled:hover:text-muted"
           >
-            start over
+            Start over
           </button>
         </header>
 
         {confirmingStartOver && (
-          // A labelled group, like the panel's "forget this?" question. Escape means cancel.
+          // A labelled group, like the panel's "Forget this memory?" question. Escape means cancel.
           <div
             role="group"
             aria-labelledby="start-over-question"
@@ -319,7 +330,7 @@ export default function ChatPage() {
                 onClick={startOver}
                 className="rounded-full border border-danger/60 px-3.5 py-1.5 text-sm font-medium text-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
-                yes, start over
+                Yes, start over
               </button>
               <button
                 ref={cancelStartOverRef}
@@ -327,18 +338,22 @@ export default function ChatPage() {
                 onClick={cancelStartOver}
                 className="rounded-full border border-line px-3.5 py-1.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
-                cancel
+                Cancel
               </button>
             </div>
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto px-4 pt-6">
+        {/* [--bubble-max:75%]: every bubble in here is at most 75% of the column
+            (see bubbleLook in ChatBubble.tsx). */}
+        <div className="flex-1 overflow-y-auto px-4 pt-6 [--bubble-max:75%]">
           {showStarters ? (
-            <div className="flex h-full flex-col justify-end gap-3 pb-2">
+            // max-w-xl keeps the starters, and their lines of text, a readable
+            // width when the column is wide.
+            <div className="flex h-full max-w-xl flex-col justify-end gap-3 pb-2">
               <p className="px-1 text-sm leading-relaxed text-muted">
-                future maya remembers the last few months. every reply shows the memories it used.
-                start with one of these, or write your own.
+                Future Maya remembers the last few months. Every reply shows the memories it used.
+                Start with one of these, or write your own.
               </p>
               {STARTER_PROMPTS.map((prompt) => (
                 <button
@@ -351,7 +366,7 @@ export default function ChatPage() {
                 </button>
               ))}
               <p className="px-1 pt-1 text-xs leading-relaxed text-muted">
-                tap a 🧠 under her replies to see what she remembered.
+                Tap a 🧠 under her replies to see what she remembered.
               </p>
             </div>
           ) : (
@@ -366,7 +381,7 @@ export default function ChatPage() {
                     memories={memories}
                     onOpenReceipt={setOpenReceipt}
                     animateArrival
-                    // A reply to an "ask again" glows softly as it arrives.
+                    // A reply to an "Ask again" glows softly as it arrives.
                     glowOnArrival={message.role === "future" && messages[index - 1]?.askedAgain === true}
                   />
                 </li>
@@ -381,14 +396,14 @@ export default function ChatPage() {
                       onOpenReceipt={setOpenReceipt}
                     />
                   </div>
-                  <p role="alert" className="max-w-[85%] text-right text-xs leading-relaxed text-danger">
-                    not sent. {failed.reason}{" "}
+                  <p role="alert" className="max-w-(--bubble-max) text-right text-xs leading-relaxed text-danger">
+                    Not sent. {failed.reason}{" "}
                     <button
                       type="button"
                       onClick={retryFailed}
                       className="font-medium underline underline-offset-2"
                     >
-                      try again
+                      Try again
                     </button>
                   </p>
                 </li>
@@ -397,12 +412,12 @@ export default function ChatPage() {
           )}
 
           {/* role="status": screen readers announce what appears inside it, here
-              "future maya is typing". The dots are only for the eyes (aria-hidden). */}
+              "Future Maya is typing". The dots are only for the eyes (aria-hidden). */}
           <div role="status" className="py-4">
             {loading && (
               // pt-1 + the py-4 above: 20px, the same gap as between messages.
               <div className="pt-1">
-                <span className="sr-only">future maya is typing</span>
+                <span className="sr-only">Future Maya is typing</span>
                 <TypingBubble />
               </div>
             )}
@@ -412,14 +427,14 @@ export default function ChatPage() {
 
         {memoryNotice && (
           <div className="flex items-center justify-between gap-3 border-t border-line bg-accent-soft px-5 py-2.5">
-            <p className="text-sm leading-snug">future maya will use your changes from now on</p>
+            <p className="text-sm leading-snug">Future Maya will use your changes from now on</p>
             {canAskAgain && (
               <button
                 type="button"
                 onClick={askAgain}
                 className="shrink-0 rounded-full border border-accent/60 bg-surface px-3 py-1 text-sm font-medium text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
-                ask again
+                Ask again
               </button>
             )}
           </div>
@@ -427,9 +442,9 @@ export default function ChatPage() {
 
         {chatIsFull ? (
           <div className="border-t border-line px-5 py-4">
-            <p className="text-sm leading-relaxed">
+            <p className="max-w-xl text-sm leading-relaxed">
               {
-                "this chat has reached the demo's length limit, which keeps the public demo free to run. start a new chat to keep talking. maya's memories stay as they are."
+                "This chat has reached the demo's length limit, which keeps the public demo free to run. Start a new chat to keep talking. Maya's memories stay as they are."
               }
             </p>
             <button
@@ -437,13 +452,13 @@ export default function ChatPage() {
               onClick={startNewChat}
               className="mt-3 rounded-full bg-accent px-4 py-2 text-sm font-medium text-accent-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
-              start a new chat
+              Start a new chat
             </button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex items-center gap-2 border-t border-line px-4 py-3">
             <label htmlFor="chat-input" className="sr-only">
-              message future maya
+              Message future Maya
             </label>
             {/* text-base (16px) stops iPhones from zooming in when the box is tapped. */}
             <input
@@ -452,7 +467,7 @@ export default function ChatPage() {
               value={input}
               onChange={(event) => setInput(event.target.value)}
               maxLength={MAX_MESSAGE_CHARS - 1}
-              placeholder="write to future maya..."
+              placeholder="Write to future Maya..."
               autoComplete="off"
               enterKeyHint="send"
               className="min-w-0 flex-1 rounded-full border border-line bg-surface px-4 py-2.5 text-base placeholder:text-muted focus:outline-none focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/30"
@@ -466,7 +481,7 @@ export default function ChatPage() {
               disabled={loading || input.trim() === ""}
               className="rounded-full border border-accent bg-accent px-4 py-2.5 text-sm font-medium text-accent-ink transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:border-line disabled:bg-surface disabled:text-muted"
             >
-              send
+              Send
             </button>
           </form>
         )}

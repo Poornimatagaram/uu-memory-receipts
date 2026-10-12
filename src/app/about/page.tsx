@@ -1,30 +1,34 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import AmbientBackground from "@/components/AmbientBackground";
 
 // This page lives in src/app/about/, a *child* folder of the root layout, so the
-// "%s · memory receipts" template in src/app/layout.tsx does apply here: the tab
-// reads "write-up · memory receipts". (The welcome page, in the same folder as that
+// "%s · Memory receipts" template in src/app/layout.tsx does apply here: the tab
+// reads "Write-up · Memory receipts". (The welcome page, in the same folder as that
 // layout, has to write its whole title out.)
 export const metadata: Metadata = {
-  title: "write-up",
+  title: "Write-up",
   description:
     "What memory receipts are, why they matter for u.u, the decisions behind them, and how to try the demo in 60 seconds.",
 };
 
-// The "start talking" button's look, from src/app/page.tsx. text-base is set on
+// The "Start talking" button's look, from src/app/page.tsx. text-base is set on
 // purpose: the column below switches to text-lg on wider screens, and the button
 // shouldn't grow with it.
 const BUTTON =
   "flex w-full items-center justify-center rounded-full bg-accent px-7 py-3.5 text-base font-medium text-accent-ink shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent sm:w-fit";
 
-// Links inside the text. --accent on --background is 5.8:1 in light mode and 7.7:1
-// in dark mode, and the underline says "link" without relying on color alone.
+// Links inside the text. --accent is 4.7:1 or better on every part of the ambient
+// background in light mode and 5.4:1 in dark mode, and the underline says "link"
+// without relying on color alone.
 const TEXT_LINK =
   "rounded-sm text-accent underline underline-offset-4 hover:decoration-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
-// Section headings: the welcome page's warm headings, a size up, since a reader
-// skims these to find their place. --warm-ink on --background is 5.2:1.
-const H2 = "text-lg font-medium tracking-tight text-warm-ink sm:text-xl";
+// Section headings: the welcome page's warm headings in the heading font, a few
+// sizes up, since a reader skims these to find their place. (Fraunces looks smaller
+// than Geist at the same size, so they're a step bigger than before.) --warm-ink is
+// 4.6:1 or better on every part of the background.
+const H2 = "font-display text-xl font-medium text-warm-ink sm:text-2xl";
 
 // A small component, used twice: at the top and at the bottom of the page.
 // In Python terms it's a function that returns markup; `className` is an optional
@@ -32,7 +36,7 @@ const H2 = "text-lg font-medium tracking-tight text-warm-ink sm:text-xl";
 function TryTheDemo({ className = "" }: { className?: string }) {
   return (
     <Link href="/chat" className={`${BUTTON} ${className}`}>
-      try the demo
+      Try the demo
     </Link>
   );
 }
@@ -54,31 +58,30 @@ function TryTheDemo({ className = "" }: { className?: string }) {
 // per line at either size. (Tailwind's max-w-prose, 65ch, would be ~90 in Geist:
 // "ch" is the width of a "0", which is much wider than an average letter.)
 //
-// Only the top of the page rises in, like the welcome page, one block after another
-// (the delays are behind motion-safe: too; see LEARNING.md, Step 8). The rest is
-// still: it's below the fold, and it's for reading.
+// Only the top of the page rises in, one block after another (the delays are
+// behind motion-safe: too; see LEARNING.md, Step 8). The rest of the text is
+// still: it's below the fold, and it's for reading. Behind it, the background's
+// shapes breathe slowly (src/components/AmbientBackground.tsx).
 export default function AboutPage() {
   return (
-    <main className="relative flex-1 overflow-hidden px-6">
-      {/* The welcome page's warm glow, holding still here. Decoration only. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-[30rem] bg-[radial-gradient(75%_70%_at_50%_0%,var(--warm),transparent)]"
-      />
+    <main className="flex-1 px-6">
+      {/* The welcome page's background, breathing, but without its scroll story:
+          the sky stays dusk the whole way down. */}
+      <AmbientBackground />
 
-      <div className="relative mx-auto w-full max-w-[31em] pt-6 pb-16 text-base leading-relaxed sm:pt-8 sm:text-lg [&_strong]:font-semibold">
+      <div className="mx-auto w-full max-w-[31em] pt-6 pb-16 text-base leading-relaxed sm:pt-8 sm:text-lg [&_strong]:font-semibold">
         <header>
           {/* The app's name, as on the welcome page, and a way back to it. */}
-          <p className="text-sm font-medium tracking-tight motion-safe:animate-rise-in">
+          <p className="font-display text-base/5 font-medium motion-safe:animate-rise-in">
             <Link
               href="/"
               className="rounded-sm underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
-              future maya <span className="text-warm-ink">· memory receipts</span>
+              Future Maya <span className="text-warm-ink">· Memory receipts</span>
             </Link>
           </p>
 
-          <h1 className="mt-10 text-[2rem] leading-[1.2] font-medium tracking-tight text-balance motion-safe:animate-rise-in sm:mt-16 sm:text-[2.5rem]">
+          <h1 className="mt-10 font-display text-[2rem] leading-[1.2] font-normal tracking-[-0.01em] text-balance motion-safe:animate-rise-in sm:mt-16 sm:text-[2.5rem]">
             Memory receipts for u.u
           </h1>
 
@@ -100,7 +103,7 @@ export default function AboutPage() {
 
         {/* What a reviewer should see first: a raised card (the --surface color the
             chat uses for cards), with numbered steps like the welcome page's
-            "how it works". items-baseline lines each number up with the first line
+            "How it works". items-baseline lines each number up with the first line
             of its step, however many lines the step wraps onto. */}
         <section
           aria-labelledby="try-it"
@@ -115,7 +118,7 @@ export default function AboutPage() {
                 1
               </span>
               <span>
-                Click <strong>start talking</strong>, then tap{" "}
+                Click <strong>Start talking</strong>, then tap{" "}
                 <strong>&quot;should i keep up with my paper reading list?&quot;</strong>
               </span>
             </li>
@@ -124,7 +127,7 @@ export default function AboutPage() {
                 2
               </span>
               <span>
-                Under future Maya&apos;s reply, tap the <strong>🧠 research goal</strong> chip.
+                Under future Maya&apos;s reply, tap the <strong>🧠 Research goal</strong> chip.
                 That memory is out of date.
               </span>
             </li>
@@ -133,12 +136,12 @@ export default function AboutPage() {
                 3
               </span>
               <span>
-                Tap <strong>that&apos;s not right</strong>, change it to{" "}
+                Tap <strong>That&apos;s not right</strong>, change it to{" "}
                 <em>
                   &quot;I used to want research, but now I love shipping features users actually
                   touch.&quot;
                 </em>
-                , and tap <strong>save</strong>.
+                , and tap <strong>Save</strong>.
               </span>
             </li>
             <li className="flex items-baseline gap-3.5">
@@ -146,7 +149,7 @@ export default function AboutPage() {
                 4
               </span>
               <span>
-                Close the panel, tap <strong>ask again</strong>, and compare the two replies.
+                Close the panel, tap <strong>Ask again</strong>, and compare the two replies.
               </span>
             </li>
           </ol>
@@ -160,9 +163,9 @@ export default function AboutPage() {
             <p>
               A future-self chat where every reply shows{" "}
               <strong>which memories it used, and why.</strong> Under each message from future
-              Maya, small 🧠 chips name the memories behind it (&quot;research goal · jul
+              Maya, small 🧠 chips name the memories behind it (&quot;Research goal · Jul
               13&quot;). Tap one to see the memory and the reason it was used, then{" "}
-              <strong>correct it</strong> or <strong>forget it</strong>. Tap &quot;ask
+              <strong>correct it</strong> or <strong>forget it</strong>. Tap &quot;Ask
               again,&quot; and the reply changes to reflect what you fixed.
             </p>
             <p>

@@ -1,18 +1,42 @@
 @import "tailwindcss";
 
-/* Color tokens: warm paper, ink, and a quiet sage accent. */
+/* Color tokens: warm paper, ink, and a quiet sage accent.
+   --muted and --warm-ink are a shade darker than before Step 10, because text now
+   sits on the ambient background (below), which can get darker than plain paper.
+   Measured against the darkest the background can get, they're 4.59:1 and 4.64:1,
+   above the 4.5:1 that small text needs. The old shades (#6f6b63 and #8a5a3c)
+   would be 3.84:1 and 4.21:1 there. Dark mode needed no change. */
 :root {
   --background: #f4f1ec;
   --foreground: #2b2a27;
-  --surface: #fffdfa; /* cards, future maya's bubbles, the memory panel */
-  --muted: #6f6b63; /* subtitles and small labels */
+  --surface: #fffdfa; /* cards, future Maya's bubbles, the memory panel */
+  --muted: #635f58; /* subtitles and small labels */
   --line: #e2dcd2; /* hairline borders */
   --accent: #3d6657; /* user bubbles and the send button */
   --accent-ink: #ffffff; /* text on top of --accent */
   --accent-soft: #e2ebe5; /* receipt chips */
-  --danger: #a3412c; /* "not sent" errors */
-  --warm: #f1e2d3; /* welcome screen: the soft glow and step numbers */
-  --warm-ink: #8a5a3c; /* text on --warm, and the welcome's small headings */
+  --danger: #a3412c; /* "Not sent." errors */
+  --warm: #f1e2d3; /* welcome screen: the step numbers */
+  --warm-ink: #825437; /* text on --warm, and the small warm headings */
+
+  /* The ambient background (src/components/AmbientBackground.tsx).
+     The sky: dusk is lavender at the top, fading into paper. Dawn is paper at the
+     top, warming to peach at the bottom. */
+  --dusk-top: #efe9f4;
+  --dusk-mid: #f3efea;
+  --dusk-bottom: #f4f0ea;
+  --dawn-top: #f6efe7;
+  --dawn-mid: #f8eadf;
+  --dawn-bottom: #f9e3d2;
+  /* Three soft shapes, blurred, at 70% opacity (50% in the chat). */
+  --shape-peach: #fadfcd;
+  --shape-sage: #d6e6d9;
+  --shape-lavender: #e5dff3;
+  /* Film grain: noise from an SVG filter (feTurbulence), drawn as a tiling
+     background image. Black specks whose transparency is the noise, so in light
+     mode the grain only ever darkens, by at most --grain-opacity (3%). */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 -1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  --grain-opacity: 0.03;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -28,6 +52,20 @@
     --danger: #e5917c;
     --warm: #2c2420;
     --warm-ink: #e2b48f;
+
+    /* Dark mode stays close to the plain dark background: a cool gray at the top
+       for dusk, a faint ember at the bottom for dawn, and muted, low-key shapes. */
+    --dusk-top: #1b1a20;
+    --dusk-mid: #161817;
+    --dusk-bottom: #151716;
+    --dawn-top: #161716;
+    --dawn-mid: #1a1816;
+    --dawn-bottom: #221b17;
+    --shape-peach: #3d2c24;
+    --shape-sage: #22322a;
+    --shape-lavender: #2c2838;
+    /* The same noise as white specks, so here the grain only ever lightens. */
+    --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 3 0 0 0 -1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
   }
 }
 
@@ -47,21 +85,28 @@
   --color-warm-ink: var(--warm-ink);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  /* Headings: Fraunces (loaded in layout.tsx), as the font-display class. The
+     second line rides along with it: every font-display element also gets
+     Fraunces' SOFT axis at its softest, which rounds off the corners of the
+     letters. Its optical size (opsz) needs nothing here: the browser matches it
+     to the font size on its own, so big headlines get the finer display cut. */
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-display--font-variation-settings: "SOFT" 100;
 }
 
 /* The welcome preview's loop (src/components/ReplyPreview.tsx): every part of it
    runs on this one clock, so they all stay in step. 8 seconds a lap, starting
-   900ms in (as the card itself finishes rising in), forever. The chips add their
+   900ms in (as the headline's reveal settles), forever. The chips add their
    own small offsets to --preview-loop-delay, so they come in one after another. */
 :root {
   --preview-loop-delay: 900ms;
   --preview-loop: 8s ease-in-out var(--preview-loop-delay) infinite both;
 }
 
-/* Gentle motion for the memory panel, the welcome screen, the typing dots and the
-   chat's one-time effects. Each --animate-NAME becomes an animate-NAME class. We
-   only use them behind motion-safe:, so they're off for anyone who asks for
-   reduced motion. */
+/* Gentle motion for the memory panel, the welcome screen, the ambient background,
+   the typing dots and the chat's one-time effects. Each --animate-NAME becomes an
+   animate-NAME class. We only use them behind motion-safe:, so they're off for
+   anyone who asks for reduced motion. */
 @theme {
   --animate-fade-in: fade-in 200ms ease-out;
   --animate-sheet-up: sheet-up 240ms ease-out;
@@ -76,8 +121,15 @@
   --animate-chip-in: chip-in 280ms ease-out both;
   /* The ✎ on a chip, the moment its memory is corrected. */
   --animate-pop: pop 360ms ease-out both;
-  /* The welcome page's warm glow, drifting very slowly. */
-  --animate-glow-drift: glow-drift 80s ease-in-out infinite;
+  /* The welcome headline, revealed gently once on load: a little slower and a
+     little further than rise-in, with an ease that settles softly. */
+  --animate-headline-in: headline-in 1000ms cubic-bezier(0.22, 1, 0.36, 1) 100ms both;
+  /* The ambient background's three shapes, breathing (src/components/AmbientBackground.tsx).
+     About 10 seconds a breath each, but each a little longer than the last, and
+     the negative delays start them part-way through, so they never move in step. */
+  --animate-breathe-1: breathe-1 10s ease-in-out infinite;
+  --animate-breathe-2: breathe-2 11s ease-in-out -3.5s infinite;
+  --animate-breathe-3: breathe-3 12s ease-in-out -7s infinite;
   /* The welcome preview's loop. One track per moving part, all on --preview-loop. */
   --animate-loop-reply: loop-reply var(--preview-loop);
   --animate-loop-chip: loop-chip var(--preview-loop);
@@ -142,29 +194,46 @@
       transform: scale(1);
     }
   }
-  /* Only transform and opacity, so the gradient is painted once and then just moved.
-     It never shrinks below its normal size, and never moves more sideways than it
-     has grown, so its edges always stay outside the screen. */
-  @keyframes glow-drift {
+  @keyframes headline-in {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+  }
+  /* Out and back: a slow drift and a gentle swell, then home again. Only
+     transform changes, so each shape's blur is drawn once and then just moved. */
+  @keyframes breathe-1 {
     0%,
     100% {
       transform: none;
-      opacity: 1;
     }
-    35% {
-      transform: translateX(-2%) scale(1.08);
-      opacity: 0.85;
+    50% {
+      transform: translate(-3vmax, 2vmax) scale(1.08);
     }
-    70% {
-      transform: translateX(2%) scale(1.14);
-      opacity: 1;
+  }
+  @keyframes breathe-2 {
+    0%,
+    100% {
+      transform: scale(1.04);
+    }
+    50% {
+      transform: translate(3vmax, -2.5vmax) scale(0.96);
+    }
+  }
+  @keyframes breathe-3 {
+    0%,
+    100% {
+      transform: scale(0.97);
+    }
+    50% {
+      transform: translate(-2vmax, -3vmax) scale(1.06);
     }
   }
 
   /* The preview loop's timeline. 1% of the lap = 80ms.
        0-6%    the reply bubble rises in, with the old text
        9-13%   the chips rise in (the second one 80ms later: an inline delay)
-       30-34%  a soft highlight lands on "research goal"
+       30-34%  a soft highlight lands on "Research goal"
        40-44%  that chip turns into its corrected version, and its ✎ pops
        52-58%  the highlight fades
        55-64%  the reply text crossfades to the new one
@@ -297,7 +366,7 @@
   }
 }
 
-/* A soft halo that fades in and out once around a reply to "ask again"
+/* A soft halo that fades in and out once around a reply to "Ask again"
    (src/components/ChatBubble.tsx). The halo is a ::after layer with a fixed
    shadow, and only its opacity animates, so the shadow is painted once. */
 @utility glow-once {
@@ -329,6 +398,92 @@
    and they all carry on from the same moment, so they stay in step. */
 [data-loop][data-paused] * {
   animation-play-state: paused;
+}
+/* The same pause also stills the background's breathing shapes, so the one button
+   stops everything that moves on the welcome page. :has() asks "does this <main>
+   contain a paused loop?", which keeps it to the page the loop is on. */
+main:has([data-loop][data-paused]) [data-ambient-shape] {
+  animation-play-state: paused;
+}
+
+/* The ambient background's layers (src/components/AmbientBackground.tsx) and the
+   welcome page's scroll story. They're in Tailwind's components layer, so a
+   utility class on the same element could still override them. */
+@layer components {
+  /* The sky. Dusk is always there. Dawn lies on top of it, invisible unless the
+     scroll story fades it in. */
+  .ambient-dusk {
+    background-image: linear-gradient(
+      to bottom,
+      var(--dusk-top),
+      var(--dusk-mid) 60%,
+      var(--dusk-bottom)
+    );
+  }
+  .ambient-dawn {
+    opacity: 0;
+    background-image: linear-gradient(
+      to bottom,
+      var(--dawn-top),
+      var(--dawn-mid) 55%,
+      var(--dawn-bottom)
+    );
+  }
+  /* Static: the noise tile is drawn once and repeated. */
+  .ambient-grain {
+    opacity: var(--grain-opacity);
+    background-image: var(--grain);
+    background-size: 160px 160px;
+  }
+
+  /* The scroll story: animations driven by scrolling instead of by time.
+     - animation-timeline: scroll(root) ties the dawn layer's fade to how far the
+       page is scrolled: 0% at the top, 100% at the bottom. Both sky layers are
+       fixed and only dawn's opacity changes, so dusk turns into dawn.
+     - animation-timeline: view() ties a section's rise-in to where it is on screen.
+       animation-range: entry 0% entry 100% plays it while the section comes in at
+       the bottom edge: hidden while it's below the screen, fully there once all of
+       it is on screen. Anything already on screen when the page loads is past
+       the range, so it simply shows.
+     The `animation` shorthand resets animation-timeline, so the timeline (and
+     the range) must come after it.
+     @supports: browsers that can't do scroll-driven animations skip this whole
+     block. They never get the animations, so every section stays fully visible
+     and the sky stays dusk. The hidden state lives only in the keyframes below,
+     so nothing can get stuck invisible. The same goes for reduced motion. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .ambient-dawn {
+        animation: dawn-rise linear both;
+        animation-timeline: scroll(root);
+      }
+      .scroll-reveal {
+        animation: scroll-reveal ease-out both;
+        animation-timeline: view();
+        animation-range: entry 0% entry 100%;
+      }
+      /* Tabbing to a link or button scrolls it just onto the screen, which can
+         leave its block only partly revealed. A block with focus inside it
+         shows fully, so a focused control is never faint. */
+      .scroll-reveal:focus-within {
+        animation: none;
+      }
+    }
+  }
+}
+@keyframes dawn-rise {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes scroll-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
 }
 
 /* No font-family here, so Tailwind's font-sans (Geist, from layout.tsx) applies. */
