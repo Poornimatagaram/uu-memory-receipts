@@ -4,7 +4,7 @@
 
 ## Try it in 60 seconds
 
-1. Click **Start talking**, then tap **"should i keep up with my paper reading list?"**
+1. Open the demo (if you land on the welcome page, click **Start talking**), then tap **"should i keep up with my paper reading list?"**
 2. Under future Maya's reply, tap the **🧠 Research goal** chip. That memory is out of date.
 3. Tap **That's not right**, change it to *"I used to want research, but now I love shipping features users actually touch."*, and tap **Save**.
 4. Close the panel, tap **Ask again**, and compare the two replies.
@@ -19,13 +19,13 @@ The demo persona is Maya, a junior ML engineer six months into her first job. On
 
 u.u's promise is memory: it remembers your way here. But memory you can't see is memory you can't trust. When future you says "this connects to what you asked last Tuesday," you have no way to check what it remembered, or to fix it when it's wrong. And people's goals change. A future self that keeps steering you toward a goal you've outgrown is worse than one with no memory at all.
 
-Receipts turn memory from a black box into something you can see and correct. They protect the core promise, that it's still *you*, by keeping the user in charge of who "you" is.
+Receipts turn memory from a black box into something you can see and correct. They protect the core promise, that future you is genuinely *you*, by keeping the user in charge of who "you" is.
 
 ## Key decisions and tradeoffs
 
 **Trust is enforced, not asked for.** The model's citations are treated as untrusted. Forgotten memories are removed *before* the model call, and every receipt the model returns is checked against the active memory store, so a hallucinated or forgotten memory can never appear as a chip. Earlier replies that relied on a since-changed memory are redacted from the history sent to the model, so it can't re-learn what the user removed.
 
-**Forgetting really forgets.** A forgotten memory's text is hidden everywhere, but its chip stays visible (faded) under old replies, so the conversation history remains honest.
+**Forgetting is enforced where it matters.** A forgotten memory never reaches the model: the browser leaves it out, the server filters it again, and earlier replies that cited it are redacted from the history sent with each request. On screen, the memory panel hides its text, while its chip stays visible (faded) and old replies are left as written, so the conversation history stays honest.
 
 **No sign-up, deliberately.** A reviewer should reach the feature in one click. In production, auth and per-user storage would be required; I left them out to keep the demo frictionless.
 

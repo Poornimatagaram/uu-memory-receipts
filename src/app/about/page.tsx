@@ -118,7 +118,8 @@ export default function AboutPage() {
                 1
               </span>
               <span>
-                Click <strong>Start talking</strong>, then tap{" "}
+                Open the demo (if you land on the welcome page, click{" "}
+                <strong>Start talking</strong>), then tap{" "}
                 <strong>&quot;should i keep up with my paper reading list?&quot;</strong>
               </span>
             </li>
@@ -192,8 +193,8 @@ export default function AboutPage() {
             </p>
             <p>
               Receipts turn memory from a black box into something you can see and correct. They
-              protect the core promise, that it&apos;s still <em>you</em>, by keeping the user in
-              charge of who &quot;you&quot; is.
+              protect the core promise, that future you is genuinely <em>you</em>, by keeping the
+              user in charge of who &quot;you&quot; is.
             </p>
           </div>
         </section>
@@ -212,9 +213,11 @@ export default function AboutPage() {
               it can&apos;t re-learn what the user removed.
             </p>
             <p>
-              <strong>Forgetting really forgets.</strong> A forgotten memory&apos;s text is hidden
-              everywhere, but its chip stays visible (faded) under old replies, so the conversation
-              history remains honest.
+              <strong>Forgetting is enforced where it matters.</strong> A forgotten memory never
+              reaches the model: the browser leaves it out, the server filters it again, and earlier
+              replies that cited it are redacted from the history sent with each request. On screen,
+              the memory panel hides its text, while its chip stays visible (faded) and old replies
+              are left as written, so the conversation history stays honest.
             </p>
             <p>
               <strong>No sign-up, deliberately.</strong> A reviewer should reach the feature in one
