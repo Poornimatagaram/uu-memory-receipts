@@ -49,9 +49,19 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* Gentle motion for the memory panel, the welcome screen and the typing dots. Each
-   --animate-NAME becomes an animate-NAME class. We only use them behind
-   motion-safe:, so they're off for anyone who asks for reduced motion. */
+/* The welcome preview's loop (src/components/ReplyPreview.tsx): every part of it
+   runs on this one clock, so they all stay in step. 8 seconds a lap, starting
+   900ms in (as the card itself finishes rising in), forever. The chips add their
+   own small offsets to --preview-loop-delay, so they come in one after another. */
+:root {
+  --preview-loop-delay: 900ms;
+  --preview-loop: 8s ease-in-out var(--preview-loop-delay) infinite both;
+}
+
+/* Gentle motion for the memory panel, the welcome screen, the typing dots and the
+   chat's one-time effects. Each --animate-NAME becomes an animate-NAME class. We
+   only use them behind motion-safe:, so they're off for anyone who asks for
+   reduced motion. */
 @theme {
   --animate-fade-in: fade-in 200ms ease-out;
   --animate-sheet-up: sheet-up 240ms ease-out;
@@ -61,6 +71,22 @@
   /* The typing dots (src/components/ChatBubble.tsx). "both" again: a dot waiting
      for its delay already shows the first frame (faded), not a full-strength flash. */
   --animate-typing-dot: typing-dot 1.2s ease-in-out infinite both;
+  /* A receipt chip arriving under a new reply. Each chip gets its own delay
+     (an inline style in ChatBubble.tsx), so they come in one after another. */
+  --animate-chip-in: chip-in 280ms ease-out both;
+  /* The ✎ on a chip, the moment its memory is corrected. */
+  --animate-pop: pop 360ms ease-out both;
+  /* The welcome page's warm glow, drifting very slowly. */
+  --animate-glow-drift: glow-drift 80s ease-in-out infinite;
+  /* The welcome preview's loop. One track per moving part, all on --preview-loop. */
+  --animate-loop-reply: loop-reply var(--preview-loop);
+  --animate-loop-chip: loop-chip var(--preview-loop);
+  --animate-loop-highlight: loop-highlight var(--preview-loop);
+  --animate-loop-goal-before: loop-goal-before var(--preview-loop);
+  --animate-loop-goal-after: loop-goal-after var(--preview-loop);
+  --animate-loop-mark: loop-mark var(--preview-loop);
+  --animate-loop-old-text: loop-old-text var(--preview-loop);
+  --animate-loop-new-text: loop-new-text var(--preview-loop);
 
   @keyframes fade-in {
     from {
@@ -96,6 +122,213 @@
       transform: translateY(-2px);
     }
   }
+  @keyframes chip-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+  }
+  /* Small, a bit too big, then settled. */
+  @keyframes pop {
+    0% {
+      opacity: 0;
+      transform: scale(0.4);
+    }
+    60% {
+      opacity: 1;
+      transform: scale(1.25);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  /* Only transform and opacity, so the gradient is painted once and then just moved.
+     It never shrinks below its normal size, and never moves more sideways than it
+     has grown, so its edges always stay outside the screen. */
+  @keyframes glow-drift {
+    0%,
+    100% {
+      transform: none;
+      opacity: 1;
+    }
+    35% {
+      transform: translateX(-2%) scale(1.08);
+      opacity: 0.85;
+    }
+    70% {
+      transform: translateX(2%) scale(1.14);
+      opacity: 1;
+    }
+  }
+
+  /* The preview loop's timeline. 1% of the lap = 80ms.
+       0-6%    the reply bubble rises in, with the old text
+       9-13%   the chips rise in (the second one 80ms later: an inline delay)
+       30-34%  a soft highlight lands on "research goal"
+       40-44%  that chip turns into its corrected version, and its ✎ pops
+       52-58%  the highlight fades
+       55-64%  the reply text crossfades to the new one
+       64-92%  hold: this is the final frame, the same as the static card
+       92-98%  everything fades out, then the lap starts again */
+  @keyframes loop-reply {
+    0% {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    6%,
+    92% {
+      opacity: 1;
+      transform: none;
+    }
+    98%,
+    100% {
+      opacity: 0;
+      transform: none;
+    }
+  }
+  @keyframes loop-chip {
+    0%,
+    9% {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    13%,
+    100% {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes loop-highlight {
+    0%,
+    30% {
+      opacity: 0;
+      transform: scale(1.15);
+    }
+    34%,
+    52% {
+      opacity: 1;
+      transform: none;
+    }
+    58%,
+    100% {
+      opacity: 0;
+      transform: none;
+    }
+  }
+  @keyframes loop-goal-before {
+    0%,
+    40% {
+      opacity: 1;
+    }
+    44%,
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes loop-goal-after {
+    0%,
+    40% {
+      opacity: 0;
+    }
+    44%,
+    100% {
+      opacity: 1;
+    }
+  }
+  /* The same pop as a real chip's ✎, squeezed into its moment in the lap. */
+  @keyframes loop-mark {
+    0%,
+    40% {
+      opacity: 0;
+      transform: scale(0.4);
+    }
+    42.5% {
+      opacity: 1;
+      transform: scale(1.25);
+    }
+    44.5%,
+    100% {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes loop-old-text {
+    0%,
+    55% {
+      opacity: 1;
+    }
+    60%,
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes loop-new-text {
+    0%,
+    58% {
+      opacity: 0;
+    }
+    64%,
+    100% {
+      opacity: 1;
+    }
+  }
+}
+
+/* The original wording of a corrected memory, struck through by a line drawn left
+   to right (src/components/MemoryPanel.tsx). text-decoration can't be animated, so
+   while this plays, the real strikethrough is off and the line is a 1px-tall
+   background image whose width grows from 0% to 100%. On a <del> that wraps onto
+   several lines, the background runs through the lines in reading order, so the
+   line is drawn line by line. When it ends, the class comes off (usePlayOnce) and
+   the <del>'s own strikethrough is back. */
+@utility strike-draw {
+  text-decoration-line: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 var(--strike-y, 60%);
+  animation: strike-draw 450ms ease-out 150ms both;
+}
+@keyframes strike-draw {
+  from {
+    background-size: 0% 1px;
+  }
+  to {
+    background-size: 100% 1px;
+  }
+}
+
+/* A soft halo that fades in and out once around a reply to "ask again"
+   (src/components/ChatBubble.tsx). The halo is a ::after layer with a fixed
+   shadow, and only its opacity animates, so the shadow is painted once. */
+@utility glow-once {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow:
+      0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent),
+      0 0 22px 4px color-mix(in oklab, var(--accent) 30%, transparent);
+    animation: glow-once 1800ms ease-in-out both;
+  }
+}
+@keyframes glow-once {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+
+/* Pausing the preview loop: its pause button, or a hidden tab, sets data-paused
+   (src/components/ReplyPreview.tsx). Every part of the loop stops where it is,
+   and they all carry on from the same moment, so they stay in step. */
+[data-loop][data-paused] * {
+  animation-play-state: paused;
 }
 
 /* No font-family here, so Tailwind's font-sans (Geist, from layout.tsx) applies. */

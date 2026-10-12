@@ -3,6 +3,7 @@ import { flushSync } from "react-dom";
 import { longDate } from "@/lib/dates";
 import type { Receipt } from "@/lib/receipts";
 import type { Memory } from "@/lib/types";
+import { usePlayOnce } from "@/lib/use-play-once";
 
 // Long enough for a few sentences (the longest seed memory is 227 characters).
 const MAX_MEMORY_CHARS = 500;
@@ -32,6 +33,13 @@ export default function MemoryPanel({ receipt, memory, onClose, onCorrect, onFor
   const forgetButtonRef = useRef<HTMLButtonElement>(null);
   const cancelForgetButtonRef = useRef<HTMLButtonElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // The two moments of a correction: the new text fades in, and the original
+  // wording gets struck through. Both start off and are only played in
+  // saveCorrection, so a panel opened on an already-corrected memory just shows
+  // the result.
+  const [newTextFading, newTextRef, fadeInNewText] = usePlayOnce(false);
+  const [striking, strikeRef, strikeOriginal] = usePlayOnce(false);
 
   // Escape steps back (see stepBack). This effect has no dependency array, so it
   // runs after every render, and the listener always sees the current `mode`.
@@ -97,6 +105,12 @@ export default function MemoryPanel({ receipt, memory, onClose, onCorrect, onFor
       return;
     }
     onCorrect(memory.id, trimmedDraft);
+    fadeInNewText();
+    // Only the first correction strikes a line through. After that, the "originally"
+    // line keeps the very first wording, which is already struck through.
+    if (!isCorrected) {
+      strikeOriginal();
+    }
     setAnnouncement("corrected. future maya will use your version from now on.");
     switchMode("view", correctButtonRef);
   }
@@ -222,13 +236,24 @@ export default function MemoryPanel({ receipt, memory, onClose, onCorrect, onFor
             ) : (
               <>
                 <blockquote
-                  className={`${isCorrected ? "mt-3" : "mt-5"} rounded-2xl bg-background px-4 py-3 leading-relaxed`}
+                  ref={newTextRef}
+                  className={`${isCorrected ? "mt-3" : "mt-5"} rounded-2xl bg-background px-4 py-3 leading-relaxed ${
+                    newTextFading ? "motion-safe:animate-fade-in" : ""
+                  }`}
                 >
                   {memory.text}
                 </blockquote>
                 {isCorrected && memory.originalText !== undefined && (
                   <p className="mt-2 px-1 text-sm leading-relaxed text-muted">
-                    originally: <del>{memory.originalText}</del>
+                    {/* strike-draw (globals.css) draws the line left to right, then hands
+                        back to the <del>'s own strikethrough. */}
+                    originally:{" "}
+                    <del
+                      ref={strikeRef}
+                      className={striking ? "motion-safe:strike-draw" : undefined}
+                    >
+                      {memory.originalText}
+                    </del>
                   </p>
                 )}
               </>

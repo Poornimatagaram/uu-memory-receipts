@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import ChatBubble from "@/components/ChatBubble";
+import ReplyPreview from "@/components/ReplyPreview";
 import seedMemories from "@/data/memories.json";
 import { parseMemories } from "@/lib/memories";
 import type { ChatMessage, Memory } from "@/lib/types";
@@ -30,14 +30,24 @@ const PREVIEW_REPLY: ChatMessage = {
   ],
 };
 
-// m01 is shown as if maya had corrected it, so the preview has a ✎ chip too.
-const PREVIEW_MEMORIES = parseMemories(seedMemories).map(
-  (m): Memory => (m.id === "m01" ? { ...m, status: "corrected" } : m),
-);
+// The preview's loop starts with an earlier reply that leans on m01, maya's
+// research goal, as it was before she corrected it ("a first-author workshop paper
+// within a year"). It's built like the reply above and wraps onto the same number
+// of lines at every screen width (checked from 320px to 1920px), so the bubble
+// doesn't have to change size when one text crossfades into the other.
+const PREVIEW_OPENING = "you told me you'd rather chase a paper first. aim for a workshop?";
 
-// The welcome screen at "/". There's no "use client" here: nothing on this page
-// needs state or click handlers (the button is a link), so it's a Server
-// Component. It's rendered to HTML on the server and adds no JavaScript of its own.
+// m01 is shown as if maya had corrected it, so the preview has a ✎ chip too.
+// Only the memories the chips point at are passed on to the preview, since
+// everything a Client Component gets from the server is sent to the browser.
+const PREVIEW_MEMORIES = parseMemories(seedMemories)
+  .filter((m) => PREVIEW_REPLY.used?.some((r) => r.id === m.id))
+  .map((m): Memory => (m.id === "m01" ? { ...m, status: "corrected" } : m));
+
+// The welcome screen at "/". There's no "use client" here: this page itself needs
+// no state or click handlers (the button is a link), so it's a Server Component,
+// rendered to HTML on the server. The one interactive piece, the preview with its
+// pause button, is its own Client Component (src/components/ReplyPreview.tsx).
 //
 // Each block rises in gently, one after another. The animation sits behind
 // motion-safe:, so with "reduce motion" on, everything is simply there. The
@@ -53,16 +63,23 @@ const PREVIEW_MEMORIES = parseMemories(seedMemories).map(
 export default function WelcomePage() {
   return (
     <main className="relative flex flex-1 flex-col overflow-hidden">
-      {/* A soft warm glow behind the headline. Decoration only. */}
+      {/* A soft warm glow behind the headline. Decoration only. With motion allowed,
+          it drifts and breathes very slowly (80s a lap): only its transform and
+          opacity change, scaled from its top edge (origin-top), so the gradient is
+          painted once and then just moved. main's overflow-hidden clips the edges. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-[30rem] bg-[radial-gradient(75%_70%_at_50%_0%,var(--warm),transparent)]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[30rem] origin-top bg-[radial-gradient(75%_70%_at_50%_0%,var(--warm),transparent)] motion-safe:animate-glow-drift"
       />
 
       <div className="relative mx-auto flex w-full max-w-lg flex-1 flex-col px-6 pt-6 pb-10 sm:pt-8 lg:max-w-5xl lg:pt-6">
-        {/* The app's name, small. Not a heading: the headline below is the page's h1. */}
+        {/* The app's name, small. Not a heading: the headline below is the page's h1.
+            It sits on the warm glow, where --muted gray was too faint in light mode
+            (4.2:1, under the 4.5:1 that small text needs). --warm-ink is the color
+            for text on --warm: 4.6:1 even on pure --warm, the strongest the glow
+            ever gets, so it stays readable wherever the drift moves the glow. */}
         <p className="text-sm font-medium tracking-tight motion-safe:animate-rise-in">
-          future maya <span className="text-muted">· memory receipts</span>
+          future maya <span className="text-warm-ink">· memory receipts</span>
         </p>
 
         <div className="mt-10 sm:mt-16 lg:mt-10 lg:grid lg:grid-cols-2 lg:items-center lg:gap-16">
@@ -116,23 +133,16 @@ export default function WelcomePage() {
             </Link>
           </div>
 
-          {/* A picture of a reply, not a live chat: it's the real ChatBubble, but
-              with no onOpenReceipt, so its chips are plain text with nothing to
-              press. <figure> tells screen readers it's an illustration, and
-              aria-labelledby names it with the caption (some browsers don't do
-              that on their own). */}
-          <figure
-            aria-labelledby="reply-preview"
+          {/* A picture of a reply, not a live chat: the real ChatBubble and
+              ReceiptChip, with nothing to press except the loop's pause button.
+              See ReplyPreview for the loop and what screen readers hear. */}
+          <ReplyPreview
+            openingText={PREVIEW_OPENING}
+            reply={PREVIEW_REPLY}
+            memories={PREVIEW_MEMORIES}
+            correctedId="m01"
             className="mt-16 motion-safe:animate-rise-in motion-safe:[animation-delay:540ms] lg:mt-0"
-          >
-            <figcaption id="reply-preview" className="text-sm font-medium text-warm-ink">
-              what a reply looks like
-            </figcaption>
-            {/* p-3 on phones leaves a 320px screen room for the longest chip on one line. */}
-            <div className="mt-4 rounded-3xl border border-line bg-background p-3 shadow-sm sm:p-5">
-              <ChatBubble message={PREVIEW_REPLY} memories={PREVIEW_MEMORIES} />
-            </div>
-          </figure>
+          />
         </div>
 
         <footer className="mt-auto pt-16 text-sm text-muted motion-safe:animate-rise-in motion-safe:[animation-delay:600ms]">

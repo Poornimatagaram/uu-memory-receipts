@@ -358,8 +358,17 @@ export default function ChatPage() {
             <ol className="flex flex-col gap-5">
               {messages.map((message, index) => (
                 // Messages are only ever appended, so their position is a stable key.
+                // That also means a bubble appears exactly once, when its message
+                // arrives, which is when animateArrival plays its effects.
                 <li key={index}>
-                  <ChatBubble message={message} memories={memories} onOpenReceipt={setOpenReceipt} />
+                  <ChatBubble
+                    message={message}
+                    memories={memories}
+                    onOpenReceipt={setOpenReceipt}
+                    animateArrival
+                    // A reply to an "ask again" glows softly as it arrives.
+                    glowOnArrival={message.role === "future" && messages[index - 1]?.askedAgain === true}
+                  />
                 </li>
               ))}
 

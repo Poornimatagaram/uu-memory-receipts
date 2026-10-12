@@ -352,3 +352,70 @@ In Python: `margin_top = 40 if viewport_width >= 1024 else 48`.
 
 ### Quiz
 Suppose the "meet maya" section had been changed from `mt-12` to plain `mt-10` instead of adding `lg:mt-10`. What would be different on a 390px phone, and which of the before/after checks described above would have caught it?
+
+## Step 9: Meaningful motion
+
+### What I built
+The moments that matter now move, once each. A new reply's memory chips rise in one after another. Correcting a memory draws a line through the old wording while the new text fades in and the chip's ✎ pops. Forgetting fades a chip into its dashed, struck-through look, and a reply to "ask again" arrives with a soft glow. The welcome card is now an 8-second loop that acts out a correction, with a small pause button, and the warm glow behind the headline drifts very slowly. With "reduce motion" on, none of it moves: everything is simply in its final state.
+
+### Files changed
+- `src/lib/use-play-once.ts` (new): `usePlayOnce`, the hook behind every one-time animation. It returns `[playing, ref, play]`, shaped like `useState`.
+- `src/components/ChatBubble.tsx`: two new props, `animateArrival` and `glowOnArrival`. Each chip's `<li>` is now an `ArrivingChip` with its own delay (150ms, then 80ms apart). It also exports `bubbleLook`, `messageColumnLook` and `CHIP_ROW_LOOK`, so the welcome loop is built from the same pieces.
+- `src/components/ReceiptChip.tsx`: the forget transitions, and `EditMark`, the ✎ that pops only when a chip becomes corrected while you're looking at it.
+- `src/components/MemoryPanel.tsx`: after a save, the new text fades in, and on the first correction the `<del>` gets its line drawn.
+- `src/components/ReplyPreview.tsx` (new, `"use client"`): the welcome card. It has a static layer (for screen readers and reduced motion), the animated loop (`aria-hidden`), the pause button, and the pause while the tab is hidden.
+- `src/app/page.tsx`: uses `ReplyPreview` and adds the loop's opening line. The glow drifts, and the wordmark's "· memory receipts" is now `text-warm-ink` (see the wordmark check below).
+- `src/app/chat/page.tsx`: passes `animateArrival` and `glowOnArrival` to each bubble.
+- `src/app/globals.css`: new keyframes (`chip-in`, `pop`, `glow-drift`, and the eight `loop-*` tracks), two small utilities (`strike-draw`, `glow-once`), the loop's shared clock (`--preview-loop`), and the pause rule.
+- Not changed: `route.ts`, `prompt.ts`, `receipts.ts`, `history.ts`, `chat-client.ts`.
+
+### Animating things that can't be animated
+`border-style` and `text-decoration-line` can't be animated: a border is dashed or it isn't, and text is struck through or it isn't. There's no halfway. Three ways around that:
+- **The dashed outline (forget).** Every chip has a `::after` layer with a 1px dashed border, at opacity 0. Forgetting fades it to 1. It's drawn *inside* the chip, so the chip no longer grows by 2px when it's forgotten.
+- **The chip's strikethrough (forget).** The line's *color* can be animated. Before, its color is transparent. Forgetting switches `line-through` on (still invisible) and fades its color to muted. It stays a real `line-through`, so high-contrast modes still show it.
+- **The panel's strikethrough (correct).** This one is drawn left to right. While it plays, the real strikethrough is off and the line is a 1px-tall background image that grows from 0% to 100% wide. On a `<del>` that wraps onto several lines, the background runs through them in reading order, so the line is drawn one line at a time. Then the class comes off and the `<del>`'s own `line-through` is back. The last drawn frame and the real line were pixel-identical in a screenshot comparison, so you can't see the hand-off.
+
+### The welcome loop
+The loop opens with an earlier reply that leans on maya's old research goal: "you told me you'd rather chase a paper first. aim for a workshop?" It has the same shape as the final reply. It also wraps onto the same number of lines at every width from 320px to 1920px (measured), so the bubble never changes size when the text changes.
+
+| Time | What happens |
+| --- | --- |
+| 0–0.5s | the bubble rises in with the old reply |
+| 0.7–1.1s | both chips rise in, 80ms apart |
+| 2.4s | a soft ring lands on "research goal" |
+| 3.2–3.5s | that chip becomes its corrected version, and its ✎ pops |
+| 4.4–5.1s | the reply crossfades to "you told me you'd rather ship things people touch. start there?" |
+| 5.1–7.4s | hold: this frame is the static card, box for box |
+| 7.4–8s | fade out, then start again |
+
+The first lap starts 0.9s after the page loads, as the card finishes rising in. Every part runs on one 8-second clock (`--preview-loop`), so pausing them all at once keeps them in step. The pause button and a hidden tab both set `data-paused`, and one CSS rule turns that into `animation-play-state: paused`. Screen readers never meet the loop (`aria-hidden`). They read the static card, which never changes. With reduced motion the static card is what you see, and the pause button is gone, since nothing moves.
+
+### The wordmark check
+"future maya" was easy to read everywhere (11.6:1 or better). "· memory receipts" was `--muted` gray on top of the warm glow, and in light mode it measured 4.18–4.31:1, under the 4.5:1 that small text needs. It's now `--warm-ink`, the color meant for text on `--warm`. The glow is never stronger than pure `--warm`, and `--warm-ink` on pure `--warm` is 4.6:1, so it stays readable wherever the drift moves the glow. The test checked the real pixels behind the text at six points of the drift: the worst was 4.58:1 in light (the gradient's pixels vary by a shade) and 8.1:1 in dark. It's on one line and fully in view at 320, 390 and 1280px, in light and dark, after its rise-in and with reduced motion.
+
+### Key concepts
+- **CSS transitions vs keyframes.** A *transition* says "when this value changes, ease from the old value to the new one" (`transition-colors duration-300`). It only runs on a change, so it can't run on its own. A *keyframe animation* is a script with a timeline (`@keyframes pop { 0% … 60% … 100% }`). It runs from the top whenever an element starts showing with that class. Forgetting uses transitions: it's a change from one look to another. The pop, the strike, the glow and the loop use keyframes: they have more than two steps, or they go there and back. Python analogy: a transition is a property setter that tweens to each new value. A keyframe animation is a job that runs its whole script every time it's started.
+- **`prefers-reduced-motion`.** It's an operating-system setting ("reduce motion") that the browser exposes as a media query. Every animation here sits behind `motion-safe:`, so stillness is the default and motion is the extra. Even the transitions are `motion-safe:transition-colors`, so with reduced motion a forgotten chip changes instantly. The test emulates the setting and checks `document.getAnimations()` is empty after every action. Python analogy: reading the user's `Accept-Language` header and branching, with "no animation" as the safe fallback.
+- **Why `transform` and `opacity` are cheap.** The browser draws a frame in steps: style, then layout (where everything goes), then paint (pixels), then compositing (stacking painted layers). Changing `width` or `margin` redoes layout for the whole page, and changing a color repaints pixels. `transform` and `opacity` skip both: the GPU just moves or fades a layer that's already painted. So the glow drifts by being scaled, not by redrawing its gradient. The ask-again halo is a `::after` layer with a fixed shadow, and only its opacity animates. Python analogy: caching a rendered page and only changing where it sits, instead of re-rendering the template.
+- **Making effects play once.** Two separate problems. First, a keyframe class that stays on can be restarted. So `usePlayOnce` puts the class on only while it plays, and takes it off on `animationend`. Second, with `cacheComponents`, Next.js hides the chat (`display: none`) when you go back to the welcome page. The browser throws away hidden animations, and when the page is shown again it makes a *new* one that plays from the start, even though the class never changed. React re-runs layout effects at that moment, before the browser paints. So the hook asks the element for its animation (`getAnimations()`) and compares it with the one it started. A new copy is a replay, so `finish()` skips it to the end before a single frame is drawn. Transitions need none of this: showing a page again doesn't change any values, so nothing transitions. And the ✎ uses `useState(corrected)` to remember whether the chip was corrected when it *first* appeared. Only a change you just made pops. Python analogy: deduplicating a retried webhook. If the delivery ID isn't the one you already handled, mark it done instead of running it again.
+- **Reading browser state with `useSyncExternalStore`.** `document.visibilityState` lives outside React. `useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)` re-renders whenever the `visibilitychange` event fires, and gives the server, which has no tab, "not hidden". Python analogy: a property that reads the current value, plus a callback registered to say it changed.
+
+### One line worth understanding
+```ts
+if (firstRunRef.current === null) {
+  firstRunRef.current = run;
+} else if (run !== firstRunRef.current) {
+  run.finish();
+}
+```
+This is in `src/lib/use-play-once.ts`. It runs in a layout effect: after React updates the page, before the browser paints it. That includes the moment Next.js shows the chat again.
+- `run` is the browser's `Animation` object for this element's CSS animation right now, from `element.getAnimations()`.
+- `firstRunRef.current === null`: no run recorded yet, so this is the first time the class went on.
+- `firstRunRef.current = run`: remember that object. A ref keeps its value across renders and across hide and show, without causing a re-render.
+- `run !== firstRunRef.current`: a different object means the browser made a new copy, which only happens after the element was hidden and shown again. It's a replay.
+- `run.finish()`: jump that copy to its last frame, which looks just like the element with no animation. That fires `animationend`, the hook sets `playing` to false, and the class comes off.
+
+In Python terms: `if seen is None: seen = run` / `elif run is not seen: run.finish()`. It's an identity check (`is`), not equality.
+
+### Quiz
+Forgetting a memory uses CSS transitions and no hook at all, while the ✎ pop needs `usePlayOnce`. When you forget a memory, go ← to the welcome page and come back, why doesn't the forget fade play again, even though nothing ever removes the chip's transition classes?
